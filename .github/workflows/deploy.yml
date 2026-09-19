@@ -1,0 +1,68 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+  schedule:
+    # Rebuild every 15 min so the baked Kick/BotRix data stays fresh.
+    # (GitHub may delay scheduled runs under load.)
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one deploy at a time; don't cancel an in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Fresh checkout = no .next cache, so every build re-fetches live data.
+      - name: Build static export
+        run: npm run build
+        env:
+          PAGES_BASE_PATH: /nyzk-site
+          KICK_CLIENT_ID: ${{ secrets.KICK_CLIENT_ID }}
+          KICK_CLIENT_SECRET: ${{ secrets.KICK_CLIENT_SECRET }}
+          KICK_CHANNEL_SLUG: ${{ secrets.KICK_CHANNEL_SLUG }}
+          NEXT_PUBLIC_TIKTOK_USERNAME: ${{ secrets.NEXT_PUBLIC_TIKTOK_USERNAME }}
+          NEXT_PUBLIC_X_USERNAME: ${{ secrets.NEXT_PUBLIC_X_USERNAME }}
+          TIKTOK_FOLLOWERS: ${{ secrets.TIKTOK_FOLLOWERS }}
+          X_FOLLOWERS: ${{ secrets.X_FOLLOWERS }}
+          DISCORD_MEMBERS: ${{ secrets.DISCORD_MEMBERS }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          BOTRIX_CHANNEL: ${{ secrets.BOTRIX_CHANNEL }}
+          WATCH_HOURS_URL: ${{ secrets.WATCH_HOURS_URL }}
+
+      # GitHub Pages must not run Jekyll (it would drop the _next folder).
+      - run: touch out/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

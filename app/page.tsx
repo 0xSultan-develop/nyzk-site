@@ -10,8 +10,6 @@ import { getKickChannel, getKickClips } from "@/lib/kick";
 import { getSiteStats } from "@/lib/stats";
 import { KICK_SLUG } from "@/lib/site";
 
-// Revalidate the page's server data every 60s.
-export const revalidate = 60;
 
 export default async function Home() {
   const [channel, clips, stats] = await Promise.all([
