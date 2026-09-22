@@ -27,15 +27,14 @@ const brand = Orbitron({
 
 
 export const metadata: Metadata = {
-  title: "NyZk — #1",
+  title: "NyZk",
   description:
     "The official home of NyZk on Kick — live streams, clips, characters, and community stats.",
   openGraph: {
-    title: "NyZk — #1",
+    title: "NyZk",
     description: "Live streams, clips, characters, and community stats.",
     type: "website",
   },
-  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({
