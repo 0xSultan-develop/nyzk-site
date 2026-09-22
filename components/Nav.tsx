@@ -33,7 +33,6 @@ export function Nav() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
         <a href="#top" className="font-display text-xl font-extrabold tracking-tight">
           {site.brand}
-          <span className="text-purple-bright">.</span>
         </a>
 
         <div className="hidden items-center gap-7 md:flex">
