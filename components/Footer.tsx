@@ -23,7 +23,7 @@ export function Footer() {
             ))}
         </div>
         <p className="text-xs text-muted">
-          © {new Date().getFullYear()} {site.brand}. All rights reserved.
+          © {new Date().getFullYear()} 0xSultan All rights reserved.
         </p>
       </div>
     </footer>
