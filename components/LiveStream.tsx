@@ -8,18 +8,23 @@ import { SectionTitle } from "./Reveal";
 export function LiveStream({ initial }: { initial: KickChannel | null }) {
   const [channel, setChannel] = useState<KickChannel | null>(initial);
 
-  // Poll live status every 30s.
+  // Poll live status from the Worker proxy (GitHub Pages can't reach Kick).
   useEffect(() => {
+    const base = process.env.NEXT_PUBLIC_DATA_URL;
+    if (!base) return;
     let cancelled = false;
     const tick = async () => {
       try {
-        const res = await fetch("/api/kick", { cache: "no-store" });
+        const res = await fetch(`${base}/kick?slug=${encodeURIComponent(KICK_SLUG)}`, {
+          cache: "no-store",
+        });
         const json = (await res.json()) as { channel: KickChannel | null };
         if (!cancelled && json.channel) setChannel(json.channel);
       } catch {
         /* keep last known state */
       }
     };
+    tick();
     const id = setInterval(tick, 30_000);
     return () => {
       cancelled = true;

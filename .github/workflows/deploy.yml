@@ -39,6 +39,8 @@ jobs:
         run: npm run build
         env:
           PAGES_BASE_PATH: /nyzk-site
+          # Client-side live data source (Cloudflare Worker proxy). Public URL.
+          NEXT_PUBLIC_DATA_URL: https://nyzk-data.0xsultan-2020.workers.dev
           KICK_CLIENT_ID: ${{ secrets.KICK_CLIENT_ID }}
           KICK_CLIENT_SECRET: ${{ secrets.KICK_CLIENT_SECRET }}
           KICK_CHANNEL_SLUG: ${{ secrets.KICK_CHANNEL_SLUG }}

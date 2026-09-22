@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Leader, SiteStats } from "@/lib/stats";
+import { useLive } from "@/lib/useLive";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 import { compact } from "@/lib/format";
@@ -169,17 +170,29 @@ function Board({
 type Period = "week" | "month" | "all";
 
 export function Stats({ stats }: { stats: SiteStats }) {
+  // Live data (client-side, via the Worker) overrides the build-time snapshot.
+  const live = useLive();
+  const s: SiteStats = live
+    ? {
+        ...stats,
+        followers: { ...stats.followers, kick: live.followers?.kick ?? stats.followers.kick },
+        topGifters: live.topGifters ?? stats.topGifters,
+        streamRegulars: live.streamRegulars ?? stats.streamRegulars,
+      }
+    : stats;
+
   // Default to the widest period that actually has data, so a fresh gift that
   // Kick has only recorded in week/month (all-time lags) still shows on load.
-  const [period, setPeriod] = useState<Period>(() =>
-    stats.topGifters.all.length
-      ? "all"
-      : stats.topGifters.month.length
-        ? "month"
-        : stats.topGifters.week.length
-          ? "week"
-          : "all",
-  );
+  const pick = (g: SiteStats["topGifters"]): Period =>
+    g.all.length ? "all" : g.month.length ? "month" : g.week.length ? "week" : "all";
+  const [period, setPeriod] = useState<Period>(() => pick(s.topGifters));
+  const [touched, setTouched] = useState(false);
+  // When live data arrives after mount, jump to a populated tab (unless the
+  // user already picked one) so the board isn't stuck on an empty period.
+  useEffect(() => {
+    if (!touched && !s.topGifters[period].length) setPeriod(pick(s.topGifters));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live]);
   const periods: { key: Period; label: string; ar: string }[] = [
     { key: "week", label: "Week", ar: "الأسبوع" },
     { key: "month", label: "Month", ar: "الشهر" },
@@ -202,7 +215,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
               color={m.color}
               icon={m.icon}
               iconClass={m.iconClass}
-              value={stats.followers[m.key]}
+              value={s.followers[m.key]}
               i={i}
             />
           );
@@ -242,7 +255,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
               {periods.map((p) => (
                 <button
                   key={p.key}
-                  onClick={() => setPeriod(p.key)}
+                  onClick={() => { setTouched(true); setPeriod(p.key); }}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                     period === p.key
                       ? "bg-purple text-white"
@@ -254,7 +267,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
               ))}
             </div>
           </div>
-          {stats.topGifters[period].length === 0 ? (
+          {s.topGifters[period].length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10">
               <SoonPill />
               <p className="text-xs text-muted">Gifting leaderboard connects soon.</p>
@@ -269,7 +282,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
                 transition={{ duration: 0.25, ease: EASE }}
                 className="flex flex-col gap-1"
               >
-                {stats.topGifters[period].map((r) => (
+                {s.topGifters[period].map((r) => (
                   <li
                     key={r.rank}
                     className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-surface-2"
@@ -303,7 +316,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
           title="Stream Regulars"
           arabic="الأكثر حضورًا"
           hint="Ranked by watch time · signed in on Kick"
-          rows={stats.streamRegulars}
+          rows={s.streamRegulars}
           delay={0.1}
         />
       </div>

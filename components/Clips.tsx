@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Hls from "hls.js";
 import type { KickClip } from "@/lib/kick";
 import { site } from "@/lib/site";
+import { useLive } from "@/lib/useLive";
 import { SectionTitle } from "./Reveal";
 
 function fmtDuration(s: number | null) {
@@ -84,8 +85,12 @@ export function Clips({ clips }: { clips: KickClip[] }) {
   const [expanded, setExpanded] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
+  // Live clips (via the Worker) override the build-time snapshot.
+  const live = useLive();
+  const data = live?.clips?.length ? live.clips : clips;
+
   // Only collapse when there's more than two full rows (a peeking 3rd row).
-  const expandable = clips.length > 6;
+  const expandable = data.length > 6;
   const collapsed = expandable && !expanded;
 
   // Measure the real grid height so the expand animates to the exact size
@@ -109,13 +114,13 @@ export function Clips({ clips }: { clips: KickClip[] }) {
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [clips.length]);
+  }, [data.length]);
 
   return (
     <section ref={sectionRef} id="clips" className="relative mx-auto max-w-7xl px-5 py-24">
       <SectionTitle eyebrow="Highlights" title="Saved Clips" arabic="الكليبات المحفوظة" />
 
-      {clips.length === 0 ? (
+      {data.length === 0 ? (
         <div className="mx-auto flex max-w-md flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface/50 px-6 py-16 text-center">
           <span className="rounded-full border border-purple/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-purple-bright">
             Soon
@@ -142,7 +147,7 @@ export function Clips({ clips }: { clips: KickClip[] }) {
           className="overflow-hidden"
         >
         <div ref={gridRef} className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {clips.map((clip, i) => (
+          {data.map((clip, i) => (
             <motion.div
               key={clip.id}
               initial={{ opacity: 0, y: 30 }}
