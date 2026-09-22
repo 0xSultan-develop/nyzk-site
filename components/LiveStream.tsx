@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { KickChannel } from "@/lib/kick";
 import { KICK_SLUG, site } from "@/lib/site";
 import { SectionTitle } from "./Reveal";
+import { KickChat } from "./KickChat";
 
 export function LiveStream({ initial }: { initial: KickChannel | null }) {
   const [channel, setChannel] = useState<KickChannel | null>(initial);
@@ -97,15 +98,9 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
               الشات الحي
             </span>
           </div>
-          {/* Kick removed its own embeddable popout chat and auth-gates its
-              realtime, so a live chat can only be shown through a relay. This is
-              the KickCX viewer (dark by default) filling the panel like a native
-              chat. If it ever breaks, swap the src or fall back to a CTA. */}
-          <iframe
-            src={`https://chat.kick.cx/embed/${KICK_SLUG}?theme=dark`}
-            title="NyZk live chat"
-            className="min-h-[480px] w-full flex-1 border-0 bg-black lg:min-h-0"
-          />
+          {/* Native live chat — reads Kick's public chatroom stream directly
+              in the browser (no third-party). See components/KickChat.tsx. */}
+          <KickChat />
           <a
             href={site.kickUrl}
             target="_blank"

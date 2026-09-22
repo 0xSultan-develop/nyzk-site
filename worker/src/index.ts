@@ -51,8 +51,10 @@ async function getChannel(slug: string) {
     const ls = d.livestream as Record<string, unknown> | null;
     const cats = (ls?.categories as Record<string, unknown>[] | undefined) ?? [];
     const thumb = ls?.thumbnail as Record<string, unknown> | undefined;
+    const chatroom = d.chatroom as Record<string, unknown> | undefined;
     return {
       slug: str(d.slug) ?? slug,
+      chatroomId: num(chatroom?.id),
       userId: num(d.user_id),
       username: str(user.username),
       description: str(user.bio),
