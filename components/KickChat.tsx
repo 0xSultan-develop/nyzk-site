@@ -2,29 +2,40 @@
 
 /**
  * Native live chat — reads Kick's PUBLIC chatroom stream directly in the
- * viewer's browser (the same public Pusher channel Kick's own site and third-
- * party viewers use). No third-party service, fully styled to the site.
- *
- * Flow: get chatroomId from the Worker → open the public Pusher socket →
- * subscribe to `chatrooms.<id>.v2` (no auth) → render ChatMessageEvent.
+ * viewer's browser (the same public Pusher channel Kick's own site uses). No
+ * third-party service. Renders Kick badges (broadcaster/mod/sub/OG/VIP/…),
+ * emotes, colored names, and persists recent messages to localStorage so the
+ * chat isn't empty on reload — just like Kick.
  */
 import { useEffect, useRef, useState } from "react";
 import { KICK_SLUG } from "@/lib/site";
+import { asset } from "@/lib/asset";
 
-// Kick's public Pusher app (used by kick.com itself for chat). Read-only.
 const PUSHER_KEY = "32cbd69e4b950bf97679";
 const PUSHER_URL = `wss://ws-us2.pusher.com/app/${PUSHER_KEY}?protocol=7&client=js&version=8.4.0&flash=false`;
+const STORE_KEY = `nyzk-chat:${KICK_SLUG}`;
+const MAX = 100;
 
-type ChatMsg = {
-  id: string;
-  name: string;
-  color: string;
-  parts: ({ t: "text"; v: string } | { t: "emote"; id: string; name: string })[];
+// Kick badge type → local SVG (downloaded from Kick's set, served by us).
+const BADGE_SRC: Record<string, string> = {
+  broadcaster: "/badges/broadcaster.svg",
+  moderator: "/badges/mod.svg",
+  og: "/badges/og.svg",
+  vip: "/badges/vip.svg",
+  verified: "/badges/verified.svg",
+  founder: "/badges/founder.svg",
+  staff: "/badges/admin.svg",
+  bot: "/badges/bot.svg",
+  subscriber: "/badges/subscriber.svg",
 };
 
-// Kick embeds emotes as [emote:ID:name]; split content into text + emote parts.
-function parseContent(content: string): ChatMsg["parts"] {
-  const parts: ChatMsg["parts"] = [];
+type Badge = { type: string; text: string; count?: number };
+type Part = { t: "text"; v: string } | { t: "emote"; id: string; name: string };
+type ChatMsg = { id: string; name: string; color: string; badges: Badge[]; parts: Part[] };
+type SubBadge = { months: number; src: string };
+
+function parseContent(content: string): Part[] {
+  const parts: Part[] = [];
   const re = /\[emote:(\d+):([^\]]+)\]/g;
   let last = 0;
   let m: RegExpExecArray | null;
@@ -37,11 +48,47 @@ function parseContent(content: string): ChatMsg["parts"] {
   return parts;
 }
 
+function BadgeIcon({ b, subBadges }: { b: Badge; subBadges: SubBadge[] }) {
+  let src: string | undefined;
+  if (b.type === "subscriber") {
+    // Channel's custom badge for the highest tier the months reach, else default.
+    const tier = [...subBadges]
+      .sort((a, z) => z.months - a.months)
+      .find((t) => (b.count ?? 0) >= t.months);
+    // tier.src is a full Kick CDN URL; the default badge is a local asset.
+    src = tier?.src ?? asset(BADGE_SRC.subscriber);
+  } else {
+    src = BADGE_SRC[b.type];
+    if (src) src = asset(src);
+  }
+  if (!src) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return (
+    <img
+      src={src}
+      alt={b.text || b.type}
+      title={b.text || b.type}
+      className="mr-1 inline-block h-4 w-4 shrink-0 align-middle"
+    />
+  );
+}
+
 export function KickChat() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
-  const [status, setStatus] = useState<"connecting" | "live" | "idle">("connecting");
+  const [status, setStatus] = useState<"connecting" | "idle" | "live">("connecting");
+  const subBadges = useRef<SubBadge[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
+
+  // Restore persisted history immediately (so it's never blank on reload).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORE_KEY);
+      if (saved) setMsgs(JSON.parse(saved) as ChatMsg[]);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_DATA_URL;
@@ -54,7 +101,9 @@ export function KickChat() {
       try {
         if (base) {
           const r = await fetch(`${base}/kick?slug=${encodeURIComponent(KICK_SLUG)}`, { cache: "no-store" });
-          chatroomId = ((await r.json()) as { channel?: { chatroomId?: number } }).channel?.chatroomId ?? null;
+          const ch = ((await r.json()) as { channel?: { chatroomId?: number; subscriberBadges?: SubBadge[] } }).channel;
+          chatroomId = ch?.chatroomId ?? null;
+          if (Array.isArray(ch?.subscriberBadges)) subBadges.current = ch!.subscriberBadges!;
         }
       } catch {
         /* ignore */
@@ -65,7 +114,6 @@ export function KickChat() {
       }
 
       ws = new WebSocket(PUSHER_URL);
-      ws.onopen = () => setStatus((s) => (s === "connecting" ? "connecting" : s));
       ws.onmessage = (e) => {
         let m: { event?: string; data?: unknown };
         try {
@@ -75,12 +123,7 @@ export function KickChat() {
         }
         if (m.event === "pusher:connection_established") {
           setStatus("idle");
-          ws?.send(
-            JSON.stringify({
-              event: "pusher:subscribe",
-              data: { auth: "", channel: `chatrooms.${chatroomId}.v2` },
-            }),
-          );
+          ws?.send(JSON.stringify({ event: "pusher:subscribe", data: { auth: "", channel: `chatrooms.${chatroomId}.v2` } }));
         } else if (m.event === "pusher:ping") {
           ws?.send(JSON.stringify({ event: "pusher:pong", data: {} }));
         } else if (m.event === "App\\Events\\ChatMessageEvent") {
@@ -88,18 +131,27 @@ export function KickChat() {
             const d = JSON.parse(m.data as string) as {
               id: string;
               content: string;
-              sender?: { username?: string; identity?: { color?: string } };
+              sender?: { username?: string; identity?: { color?: string; badges?: Badge[] } };
             };
             const msg: ChatMsg = {
               id: d.id || Math.random().toString(36),
               name: d.sender?.username || "user",
               color: d.sender?.identity?.color || "#a78bfa",
+              badges: Array.isArray(d.sender?.identity?.badges) ? d.sender!.identity!.badges! : [],
               parts: parseContent(d.content || ""),
             };
             setStatus("live");
-            setMsgs((prev) => [...prev.slice(-120), msg]);
+            setMsgs((prev) => {
+              const next = [...prev.slice(-(MAX - 1)), msg];
+              try {
+                localStorage.setItem(STORE_KEY, JSON.stringify(next));
+              } catch {
+                /* quota / private mode */
+              }
+              return next;
+            });
           } catch {
-            /* ignore malformed */
+            /* ignore */
           }
         }
       };
@@ -117,7 +169,6 @@ export function KickChat() {
     };
   }, []);
 
-  // Auto-scroll to newest unless the viewer scrolled up to read history.
   useEffect(() => {
     const el = listRef.current;
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
@@ -141,6 +192,9 @@ export function KickChat() {
       ) : (
         msgs.map((m) => (
           <p key={m.id} className="text-sm leading-snug">
+            {m.badges.map((b, i) => (
+              <BadgeIcon key={i} b={b} subBadges={subBadges.current} />
+            ))}
             <span className="font-semibold" style={{ color: m.color }}>
               {m.name}
             </span>

@@ -52,9 +52,13 @@ async function getChannel(slug: string) {
     const cats = (ls?.categories as Record<string, unknown>[] | undefined) ?? [];
     const thumb = ls?.thumbnail as Record<string, unknown> | undefined;
     const chatroom = d.chatroom as Record<string, unknown> | undefined;
+    const subBadges = (d.subscriber_badges as Record<string, unknown>[] | undefined) ?? [];
     return {
       slug: str(d.slug) ?? slug,
       chatroomId: num(chatroom?.id),
+      subscriberBadges: subBadges
+        .map((b) => ({ months: num(b.months), src: str((b.badge_image as Record<string, unknown> | undefined)?.src) }))
+        .filter((b) => b.months != null && b.src != null),
       userId: num(d.user_id),
       username: str(user.username),
       description: str(user.bio),
