@@ -97,8 +97,10 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
               الشات الحي
             </span>
           </div>
+          {/* Kick removed its embeddable popout chat, so we use the third-party
+              chat.kick.cx viewer (read-only). Swap the src if it ever changes. */}
           <iframe
-            src={`https://kick.com/popout/${KICK_SLUG}/chat`}
+            src={`https://chat.kick.cx/embed/${KICK_SLUG}`}
             title="NyZk chat"
             className="h-[420px] w-full flex-1 lg:h-auto"
           />
