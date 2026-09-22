@@ -169,6 +169,7 @@ async function getRegulars(slug: string) {
 type Env = {
   FOLLOWERS_TIKTOK?: string;
   FOLLOWERS_X?: string;
+  FOLLOWERS_DISCORD?: string;
   FOLLOWERS_KICK_FALLBACK?: string;
   DISCORD_GUILD_ID?: string;
 };
@@ -203,7 +204,8 @@ async function getFollowers(env: Env, kickLive: number | null) {
     kick: kickLive ?? toNum(env.FOLLOWERS_KICK_FALLBACK),
     tiktok: toNum(env.FOLLOWERS_TIKTOK),
     x: toNum(env.FOLLOWERS_X),
-    discord: await getDiscordMembers(env.DISCORD_GUILD_ID),
+    // Configured total-member count (correct metric); widget only if unset.
+    discord: toNum(env.FOLLOWERS_DISCORD) ?? (await getDiscordMembers(env.DISCORD_GUILD_ID)),
   };
 }
 
