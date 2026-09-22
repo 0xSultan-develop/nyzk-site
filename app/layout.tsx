@@ -27,6 +27,8 @@ const brand = Orbitron({
 
 
 export const metadata: Metadata = {
+  // Absolute base so share cards (og:image / twitter) resolve the image URL.
+  metadataBase: new URL("https://nyzk.pages.dev"),
   title: "NyZk",
   description:
     "The official home of NyZk on Kick — live streams, clips, characters, and community stats.",
@@ -34,6 +36,12 @@ export const metadata: Metadata = {
     title: "NyZk",
     description: "Live streams, clips, characters, and community stats.",
     type: "website",
+    url: "https://nyzk.pages.dev",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NyZk",
+    description: "Live streams, clips, characters, and community stats.",
   },
 };
 
