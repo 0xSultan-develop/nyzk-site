@@ -14,7 +14,7 @@ import type { Leader } from "@/lib/stats";
 import type { KickChannel, KickClip } from "@/lib/kick";
 
 export type LiveData = {
-  followers?: { kick: number | null };
+  followers?: { kick: number | null; tiktok?: number | null; x?: number | null; discord?: number | null };
   channel?: KickChannel | null;
   clips?: KickClip[];
   topGifters?: { week: Leader[]; month: Leader[]; all: Leader[] };

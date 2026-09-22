@@ -166,8 +166,49 @@ async function getRegulars(slug: string) {
   }
 }
 
+type Env = {
+  FOLLOWERS_TIKTOK?: string;
+  FOLLOWERS_X?: string;
+  FOLLOWERS_KICK_FALLBACK?: string;
+  DISCORD_GUILD_ID?: string;
+};
+
+const toNum = (v: unknown) => {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/** Live Discord member count via the server widget (null if widget disabled). */
+async function getDiscordMembers(guildId?: string): Promise<number | null> {
+  if (!guildId) return null;
+  try {
+    const res = await fetch(`https://discord.com/api/guilds/${guildId}/widget.json`, {
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return null;
+    const j = (await res.json()) as { presence_count?: number };
+    return typeof j.presence_count === "number" ? j.presence_count : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * All follower counts. Kick is live (Kick strips followers_count from datacenter
+ * IPs, so fall back to a configured number). TikTok/X are manual config numbers.
+ * Discord is live via the widget when enabled.
+ */
+async function getFollowers(env: Env, kickLive: number | null) {
+  return {
+    kick: kickLive ?? toNum(env.FOLLOWERS_KICK_FALLBACK),
+    tiktok: toNum(env.FOLLOWERS_TIKTOK),
+    x: toNum(env.FOLLOWERS_X),
+    discord: await getDiscordMembers(env.DISCORD_GUILD_ID),
+  };
+}
+
 export default {
-  async fetch(req: Request): Promise<Response> {
+  async fetch(req: Request, env: Env): Promise<Response> {
     if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
     const url = new URL(req.url);
@@ -185,7 +226,7 @@ export default {
         getRegulars(slug),
       ]);
       return json({
-        followers: { kick: channel?.followers ?? null },
+        followers: await getFollowers(env, channel?.followers ?? null),
         channel,
         clips,
         topGifters: gifts,

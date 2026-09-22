@@ -176,7 +176,12 @@ export function Stats({ stats }: { stats: SiteStats }) {
   const s: SiteStats = live
     ? {
         ...stats,
-        followers: { ...stats.followers, kick: live.followers?.kick ?? stats.followers.kick },
+        followers: {
+          kick: live.followers?.kick ?? stats.followers.kick,
+          tiktok: live.followers?.tiktok ?? stats.followers.tiktok,
+          x: live.followers?.x ?? stats.followers.x,
+          discord: live.followers?.discord ?? stats.followers.discord,
+        },
         topGifters: live.topGifters ?? stats.topGifters,
         streamRegulars: live.streamRegulars ?? stats.streamRegulars,
       }

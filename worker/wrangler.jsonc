@@ -3,5 +3,13 @@
   "name": "nyzk-data",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // Public follower numbers shown on the site. Kick is live (this is the
+  // fallback for when Kick hides followers_count from datacenter IPs).
+  "vars": {
+    "FOLLOWERS_TIKTOK": "1831",
+    "FOLLOWERS_X": "84",
+    "FOLLOWERS_KICK_FALLBACK": "1615",
+    "DISCORD_GUILD_ID": "1546966171687976960"
+  }
 }
