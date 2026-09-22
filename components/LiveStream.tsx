@@ -97,18 +97,44 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
               الشات الحي
             </span>
           </div>
-          {/* Kick removed its embeddable popout chat, so we use the third-party
-              chat.kick.cx viewer (read-only). Swap the src if it ever changes. */}
-          <iframe
-            src={`https://chat.kick.cx/embed/${KICK_SLUG}`}
-            title="NyZk chat"
-            className="h-[420px] w-full flex-1 lg:h-auto"
-          />
+          {/* Kick removed its embeddable popout chat and now auth-gates its
+              realtime, so the chat can't be embedded. Clean CTA into Kick chat. */}
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center lg:h-auto">
+            <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-kick/15">
+              <span className="live-dot absolute h-2.5 w-2.5 translate-x-4 -translate-y-4 rounded-full bg-kick" />
+              <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-kick" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </span>
+            <div>
+              <p className="text-sm font-semibold">Join the live chat</p>
+              <p className="font-arabic mt-1 text-xs text-muted" dir="rtl">
+                الشات مباشر على الكيك — انضم للدردشة
+              </p>
+            </div>
+            <a
+              href={site.kickUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => {
+                // Popout window sized like a chat sidebar (falls back to a tab).
+                e.preventDefault();
+                window.open(
+                  site.kickUrl,
+                  "nyzk-chat",
+                  "width=420,height=720,noopener,noreferrer",
+                );
+              }}
+              className="rounded-xl bg-kick px-6 py-3 text-sm font-bold text-black transition-transform hover:scale-[1.03]"
+            >
+              افتح الشات الحي ↗
+            </a>
+          </div>
           <a
             href={site.kickUrl}
             target="_blank"
             rel="noreferrer"
-            className="m-3 rounded-xl bg-kick py-3 text-center text-sm font-bold text-black transition-transform hover:scale-[1.02]"
+            className="m-3 rounded-xl border border-border py-3 text-center text-sm font-bold transition-colors hover:bg-surface-2"
           >
             Open stream on Kick →
           </a>
