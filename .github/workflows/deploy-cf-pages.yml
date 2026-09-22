@@ -1,0 +1,35 @@
+name: Deploy to Cloudflare Pages
+
+# Auto-publishes the site to https://nyzk.pages.dev on every push.
+# Requires one repo secret: CLOUDFLARE_API_TOKEN (Pages:Edit permission).
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm install --no-audit --no-fund
+
+      # Root basePath (Pages serves at the domain root, not /nyzk-site).
+      - name: Build static export
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: ""
+          NEXT_PUBLIC_DATA_URL: https://nyzk-data.0xsultan-2020.workers.dev
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 2726f2b7064250a24cad787ded0c6022
+          command: pages deploy out --project-name=nyzk --branch=main --commit-dirty=true
