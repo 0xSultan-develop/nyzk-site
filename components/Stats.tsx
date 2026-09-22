@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Leader, SiteStats } from "@/lib/stats";
 import { useLive } from "@/lib/useLive";
+import { asset } from "@/lib/asset";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 import { compact } from "@/lib/format";
@@ -66,7 +67,7 @@ function FollowerTile({
         {showIcon ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={icon}
+            src={asset(icon)}
             alt={label}
             className={`h-full w-full object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.5)] transition-transform duration-300 group-hover:-translate-y-1 group-hover:rotate-3 ${iconClass ?? ""}`}
             onError={() => setBroken(true)}

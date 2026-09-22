@@ -38,7 +38,8 @@ jobs:
       - name: Build static export
         run: npm run build
         env:
-          PAGES_BASE_PATH: /nyzk-site
+          # Served under /<repo> on Pages; also read client-side by lib/asset.ts.
+          NEXT_PUBLIC_BASE_PATH: /nyzk-site
           # Client-side live data source (Cloudflare Worker proxy). Public URL.
           NEXT_PUBLIC_DATA_URL: https://nyzk-data.0xsultan-2020.workers.dev
           KICK_CLIENT_ID: ${{ secrets.KICK_CLIENT_ID }}

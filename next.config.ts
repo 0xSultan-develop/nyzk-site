@@ -5,9 +5,9 @@ import { dirname } from "node:path";
 const root = dirname(fileURLToPath(import.meta.url));
 
 // For GitHub Pages project sites the app is served under /<repo>. The deploy
-// workflow sets PAGES_BASE_PATH=/nyzk-site; locally it's empty so `next dev`
-// keeps working at the root.
-const basePath = process.env.PAGES_BASE_PATH || "";
+// workflow sets NEXT_PUBLIC_BASE_PATH=/nyzk-site (also read client-side by
+// lib/asset.ts); locally it's empty so `next dev` keeps working at the root.
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const nextConfig: NextConfig = {
   // Static HTML export → hostable on GitHub Pages (no Node server).

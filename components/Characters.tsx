@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { characters, type Character } from "@/lib/site";
+import { asset } from "@/lib/asset";
 import { SectionTitle } from "./Reveal";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -40,7 +41,7 @@ function Portrait({ c, watermark, layoutId }: { c: Character; watermark?: string
         {c.image && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={c.image}
+            src={asset(c.image)}
             alt={c.name}
             className="absolute inset-0 h-full w-full object-contain object-center"
             onError={(e) => {

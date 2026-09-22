@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { socials, type Social } from "@/lib/site";
+import { asset } from "@/lib/asset";
 import { SectionTitle } from "./Reveal";
 
 /** Minimal brand glyphs — fallback until the 3D PNGs are dropped in /public/icons3d */
@@ -78,7 +79,7 @@ function Card({ s, i, wide }: { s: Social; i: number; wide?: boolean }) {
           {showImg ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={s.icon3d}
+              src={asset(s.icon3d)}
               alt={s.label}
               className="absolute inset-0 h-full w-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:rotate-3"
               onError={() => setBroken(true)}

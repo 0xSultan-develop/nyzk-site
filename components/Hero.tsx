@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { site } from "@/lib/site";
+import { asset } from "@/lib/asset";
 
 export function Hero() {
   return (
@@ -15,8 +16,7 @@ export function Hero() {
       <div
         className="absolute inset-x-0 bottom-0 top-20 bg-cover"
         style={{
-          backgroundImage:
-            "linear-gradient(180deg, rgba(7,6,11,0.35) 0%, rgba(7,6,11,0.15) 40%, rgba(7,6,11,0.9) 100%), url('/hero/hero.png')",
+          backgroundImage: `linear-gradient(180deg, rgba(7,6,11,0.35) 0%, rgba(7,6,11,0.15) 40%, rgba(7,6,11,0.9) 100%), url('${asset("/hero/hero.png")}')`,
           backgroundPosition: "center 12%",
           backgroundColor: "#0b0714",
         }}
