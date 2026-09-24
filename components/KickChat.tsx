@@ -133,10 +133,13 @@ export function KickChat() {
               content: string;
               sender?: { username?: string; identity?: { color?: string; badges?: Badge[] } };
             };
+            // Validate the color (untrusted) so only a real hex reaches `style`.
+            const rawColor = d.sender?.identity?.color || "";
+            const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : "#a78bfa";
             const msg: ChatMsg = {
               id: d.id || Math.random().toString(36),
               name: d.sender?.username || "user",
-              color: d.sender?.identity?.color || "#a78bfa",
+              color,
               badges: Array.isArray(d.sender?.identity?.badges) ? d.sender!.identity!.badges! : [],
               parts: parseContent(d.content || ""),
             };

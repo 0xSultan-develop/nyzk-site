@@ -18,18 +18,29 @@ const UA =
 const num = (v: unknown) => (typeof v === "number" ? v : null);
 const str = (v: unknown) => (typeof v === "string" && v ? v : null);
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "*",
-};
+// Only the site's own origins may read the proxy (echo the matching Origin).
+const ALLOWED_ORIGINS = new Set([
+  "https://nyzk.pages.dev",
+  "https://0xsultan-develop.github.io",
+]);
 
-function json(data: unknown, maxAge = 60) {
+function cors(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin");
+  const allow = origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://nyzk.pages.dev";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Vary": "Origin",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "*",
+  };
+}
+
+function json(data: unknown, req: Request, maxAge = 60) {
   return new Response(JSON.stringify(data), {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": `public, max-age=${maxAge}`,
-      ...CORS,
+      ...cors(req),
     },
   });
 }
@@ -211,13 +222,13 @@ async function getFollowers(env: Env, kickLive: number | null) {
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
-    if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+    if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
 
     const url = new URL(req.url);
     const slug = (url.searchParams.get("slug") || "nyzzk").trim();
 
     if (url.pathname === "/kick") {
-      return json({ channel: await getChannel(slug) }, 30);
+      return json({ channel: await getChannel(slug) }, req, 30);
     }
 
     if (url.pathname === "/stats") {
@@ -234,9 +245,9 @@ export default {
         topGifters: gifts,
         streamRegulars: regulars,
         updatedAt: new Date().toISOString(),
-      });
+      }, req);
     }
 
-    return json({ ok: true, endpoints: ["/stats?slug=", "/kick?slug="] });
+    return json({ ok: true, endpoints: ["/stats?slug=", "/kick?slug="] }, req);
   },
 };
