@@ -119,7 +119,7 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
             onClick={onBack}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:border-white/20 hover:text-foreground"
           >
-            ← Back
+← رجوع
           </button>
         </div>
 
@@ -160,7 +160,7 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
           </p>
         ) : (
           <p className="mt-5 max-w-prose text-sm leading-relaxed text-muted">
-            <span className="italic">Full bio coming soon.</span>
+            <span className="italic">السيرة قريبًا.</span>
           </p>
         )}
 

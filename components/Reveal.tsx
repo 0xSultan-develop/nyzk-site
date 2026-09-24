@@ -38,19 +38,12 @@ export function SectionTitle({
 }) {
   return (
     <Reveal className="mb-10 text-center">
-      {eyebrow && (
-        <span className="text-xs font-semibold uppercase tracking-[0.35em] text-purple-bright/80">
-          {eyebrow}
-        </span>
-      )}
-      <h2 className="font-display mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl">
-        {title}
+      <h2
+        className="font-arabic-display mt-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl"
+        dir="rtl"
+      >
+        {arabic || title}
       </h2>
-      {arabic && (
-        <p className="font-arabic-display mt-2 text-xl text-muted" dir="rtl">
-          {arabic}
-        </p>
-      )}
     </Reveal>
   );
 }

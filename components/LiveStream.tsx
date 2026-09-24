@@ -53,13 +53,13 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
                 // live → show the viewer count instead of the word "Live"
                 <span className="flex items-center gap-1 text-xs font-bold tabular-nums tracking-wide">
                   {channel.viewers.toLocaleString()}
-                  <span className="font-medium normal-case text-muted">watching</span>
+                  <span className="font-medium normal-case text-muted">يتابع</span>
                 </span>
               ) : (
-                <span className="text-xs font-bold uppercase tracking-wide">Live</span>
+                <span className="text-xs font-bold tracking-wide">مباشر</span>
               )
             ) : (
-              <span className="text-xs font-bold uppercase tracking-wide">Offline</span>
+              <span className="text-xs font-bold tracking-wide">غير متصل</span>
             )}
           </div>
 
@@ -72,11 +72,11 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-4 bg-[radial-gradient(60%_60%_at_50%_40%,rgba(124,58,237,0.18),transparent)] text-center">
-              <p className="font-display text-2xl font-bold">Currently offline</p>
-              <p className="max-w-sm text-sm text-muted">
+              <p className="font-display text-2xl font-bold">غير متصل حاليًا</p>
+              <p className="max-w-sm text-sm text-muted" dir="rtl">
                 {channel?.title
-                  ? `Last: ${channel.title}`
-                  : "The stream isn't live right now — check the socials for the next one."}
+                  ? `آخر بث: ${channel.title}`
+                  : "البث مو مباشر الحين — تابِع الحسابات عشان تعرف موعد البث الجاي."}
               </p>
               <a
                 href={site.kickUrl}
@@ -84,7 +84,7 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
                 rel="noreferrer"
                 className="rounded-full border border-kick/40 px-5 py-2 text-sm font-semibold text-kick transition-colors hover:bg-kick hover:text-black"
               >
-                Follow on Kick
+                تابِع على كيك
               </a>
             </div>
           )}
@@ -92,11 +92,8 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
 
         {/* Chat */}
         <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface lg:w-[340px]">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <span className="text-sm font-bold">Live Chat</span>
-            <span className="font-arabic text-xs text-muted" dir="rtl">
-              الشات الحي
-            </span>
+          <div className="flex items-center border-b border-border px-4 py-3">
+            <span className="font-arabic text-sm font-bold">الشات المباشر</span>
           </div>
           {/* Native live chat — reads Kick's public chatroom stream directly
               in the browser (no third-party). See components/KickChat.tsx. */}
@@ -107,7 +104,7 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
             rel="noreferrer"
             className="m-3 rounded-xl border border-border py-3 text-center text-sm font-bold transition-colors hover:bg-surface-2"
           >
-            Open stream on Kick →
+            افتح البث على كيك ←
           </a>
         </div>
       </div>

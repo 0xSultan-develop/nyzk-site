@@ -25,7 +25,7 @@ const followerMeta = [
 function SoonPill() {
   return (
     <span className="rounded-full border border-purple/30 px-3 py-0.5 text-xs font-bold uppercase tracking-widest text-purple-bright">
-      Soon
+      قريبًا
     </span>
   );
 }
@@ -81,8 +81,7 @@ function FollowerTile({
       <p className="font-display relative text-4xl font-extrabold tabular-nums sm:text-5xl">
         {value == null ? <SoonPill /> : compact(value)}
       </p>
-      <p className="relative mt-2 text-sm text-muted">{label}</p>
-      <p className="font-arabic relative text-xs text-muted/70" dir="rtl">
+      <p className="font-arabic relative mt-2 text-sm text-muted" dir="rtl">
         {arabic}
       </p>
     </motion.div>
@@ -110,20 +109,16 @@ function Board({
       transition={{ duration: 0.55, delay, ease: EASE }}
       className="flex flex-col rounded-2xl border border-border bg-surface p-6"
     >
-      <div className="mb-4 flex items-baseline justify-between">
-        <div>
-          <h3 className="font-display text-lg font-bold">{title}</h3>
-          {hint && <p className="text-xs text-muted">{hint}</p>}
-        </div>
-        <span className="font-arabic text-sm text-muted" dir="rtl">
-          {arabic}
-        </span>
+      <div className="mb-4 flex items-baseline justify-end">
+        <h3 className="font-arabic text-lg font-bold" dir="rtl">
+          {arabic || title}
+        </h3>
       </div>
 
       {rows.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10">
           <SoonPill />
-          <p className="text-xs text-muted">Data connects here soon.</p>
+          <p className="text-xs text-muted" dir="rtl">تظهر البيانات هنا قريبًا.</p>
         </div>
       ) : (
         <ol className="scroll-thin flex flex-col gap-1">
@@ -256,7 +251,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
           className="flex flex-col rounded-2xl border border-border bg-surface p-6"
         >
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-display text-lg font-bold">Top Gifters</h3>
+            <h3 className="font-arabic text-lg font-bold">القفنان</h3>
             <div className="flex rounded-full border border-border p-0.5">
               {periods.map((p) => (
                 <button
@@ -268,7 +263,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
                       : "text-muted hover:text-foreground"
                   }`}
                 >
-                  {p.label}
+                  {p.ar}
                 </button>
               ))}
             </div>
@@ -276,7 +271,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
           {s.topGifters[period].length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10">
               <SoonPill />
-              <p className="text-xs text-muted">Gifting leaderboard connects soon.</p>
+              <p className="text-xs text-muted">قائمة الهدايا بتظهر قريبًا.</p>
             </div>
           ) : (
             <AnimatePresence mode="wait">

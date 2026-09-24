@@ -91,7 +91,7 @@ function Card({ s, i, wide }: { s: Social; i: number; wide?: boolean }) {
         <div className={`relative z-10 ${wide ? "text-left" : "text-center"}`}>
           <p className={`font-display font-bold ${wide ? "text-3xl" : "text-base"}`}>{s.label}</p>
           <p className={`text-muted ${wide ? "text-base" : "text-sm"}`}>
-            {soon ? "Soon" : s.key === "discord" ? s.handle : `@${s.handle}`}
+            {soon ? "قريبًا" : s.key === "discord" ? s.handle : `@${s.handle}`}
           </p>
         </div>
       </Wrapper>

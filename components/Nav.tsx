@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { site } from "@/lib/site";
 
 const links = [
-  { href: "#characters", label: "Characters" },
-  { href: "#live", label: "Live" },
-  { href: "#clips", label: "Clips" },
-  { href: "#stats", label: "Stats" },
-  { href: "#leaderboards", label: "Ranks" },
-  { href: "#socials", label: "Socials" },
+  { href: "#characters", label: "الشخصيات" },
+  { href: "#live", label: "البث" },
+  { href: "#clips", label: "الكليبات" },
+  { href: "#stats", label: "الإحصائيات" },
+  { href: "#leaderboards", label: "المتصدّرون" },
+  { href: "#socials", label: "السوشل" },
 ];
 
 export function Nav() {
@@ -53,7 +53,7 @@ export function Nav() {
           rel="noreferrer"
           className="rounded-full bg-kick px-4 py-2 text-sm font-bold text-black transition-transform hover:scale-105"
         >
-          Watch on Kick
+          شاهد على كيك
         </a>
       </nav>
     </header>

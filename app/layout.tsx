@@ -50,7 +50,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="en"
+      lang="ar"
       className={`${display.variable} ${body.variable} ${brand.variable} h-full antialiased`}
     >
       <body className="min-h-full">{children}</body>

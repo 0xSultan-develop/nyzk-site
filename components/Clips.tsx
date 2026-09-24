@@ -123,10 +123,10 @@ export function Clips({ clips }: { clips: KickClip[] }) {
       {data.length === 0 ? (
         <div className="mx-auto flex max-w-md flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface/50 px-6 py-16 text-center">
           <span className="rounded-full border border-purple/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-purple-bright">
-            Soon
+            قريبًا
           </span>
-          <p className="text-sm text-muted">
-            Clips will appear here automatically once the channel has some.
+          <p className="text-sm text-muted" dir="rtl">
+            الكليبات بتظهر هنا تلقائيًا أول ما تكون موجودة في القناة.
           </p>
           <a
             href={site.kickUrl}
@@ -134,7 +134,7 @@ export function Clips({ clips }: { clips: KickClip[] }) {
             rel="noreferrer"
             className="text-sm font-semibold text-kick hover:underline"
           >
-            Browse on Kick →
+            تصفّح على كيك ←
           </a>
         </div>
       ) : (
@@ -192,13 +192,13 @@ export function Clips({ clips }: { clips: KickClip[] }) {
                   target="_blank"
                   rel="noreferrer"
                   className="font-medium leading-snug transition-colors hover:text-purple-bright"
-                  title="Open this clip on Kick"
+                  title="افتح الكليب على كيك"
                 >
                   {clip.title}
                 </a>
                 {clip.views != null && (
                   <p className="mt-1 text-xs text-muted">
-                    {clip.views.toLocaleString()} views
+                    {clip.views.toLocaleString()} مشاهدة
                   </p>
                 )}
               </div>

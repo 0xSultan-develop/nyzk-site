@@ -108,8 +108,8 @@ export const characters: Character[] = [
     accent: "#a855f7",
     image: "/characters/rayan-vorhees.png",
     traits: [
-      { label: "Family", value: "VORHEES" },
-      { label: "Gang", value: "Scrap Army" },
+      { label: "العائلة", value: "VORHEES" },
+      { label: "العصابة", value: "Scrap Army" },
     ],
   },
 ];
