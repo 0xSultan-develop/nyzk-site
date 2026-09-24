@@ -62,7 +62,8 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-body), system-ui, sans-serif;
+  /* Arabic-first site → Thmanyah Sans is the default face everywhere. */
+  font-family: "Thmanyah Sans", var(--font-body), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
@@ -84,7 +85,7 @@ section[id] {
   font-weight: 500;
 }
 .font-arabic-display {
-  font-family: "Thmanyah Sans", var(--font-body), sans-serif;
+  font-family: "Thmanyah Serif Display", "Thmanyah Sans", var(--font-body), serif;
   font-weight: 900;
 }
 

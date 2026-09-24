@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Outfit, Orbitron } from "next/font/google";
 import "./globals.css";
 // Thmanyah (ثمانية) Arabic font — official-recommended web package (CDN woff2 + @font-face).
-import "@dawod/thmanyah-font-web/sans.css";
+// Full family set: Sans (body/UI) + Serif Display (headings) + Serif Text.
+import "@dawod/thmanyah-font-web/index.css";
 
 // English headings — distinctive, modern.
 const display = Space_Grotesk({
@@ -53,6 +54,8 @@ export default function RootLayout({
       lang="ar"
       className={`${display.variable} ${body.variable} ${brand.variable} h-full antialiased`}
     >
+      {/* Speed up the Thmanyah web-font fetch from the jsDelivr CDN. */}
+      <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
       <body className="min-h-full">{children}</body>
     </html>
   );
