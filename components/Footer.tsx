@@ -32,7 +32,7 @@ export function Footer() {
         dir="rtl"
         className="font-arabic-text mx-auto max-w-2xl px-5 pb-9 text-center text-sm leading-relaxed text-muted/55"
       >
-        🛡️ هذا الموقع محميٌّ بإتقان — كائنًا من كان، لن يكون أقوى من حمايته.
+        هذا الموقع محميٌّ بإتقان — كائنًا من كان، لن يكون أقوى من حمايته.
       </p>
     </footer>
   );
