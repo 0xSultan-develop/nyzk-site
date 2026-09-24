@@ -65,6 +65,8 @@ body {
   /* Arabic-first site → Thmanyah Sans is the default face everywhere. */
   font-family: "Thmanyah Sans", var(--font-body), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility; /* crisper small Arabic text */
   overflow-x: hidden;
 }
 
@@ -79,14 +81,34 @@ section[id] {
 .font-brand {
   font-family: var(--font-brand), var(--font-display), system-ui, sans-serif;
 }
-/* Thmanyah (ثمانية) — Arabic type */
+/* ============================================================
+   Thmanyah (ثمانية) — used the way Thmanyah use it:
+   • Sans        → digital / UI / small text (clearest on screen)
+   • Serif Text  → body reading copy
+   • Serif Display → headings (elegant stylistic alternates)
+   ============================================================ */
+
+/* Small UI / labels — Sans is the screen-optimized face for small sizes. */
 .font-arabic {
   font-family: "Thmanyah Sans", var(--font-body), sans-serif;
   font-weight: 500;
+  line-height: 1.7; /* Arabic needs more leading */
 }
+
+/* Reading / body copy — Thmanyah Serif Text. */
+.font-arabic-text {
+  font-family: "Thmanyah Serif Text", "Thmanyah Sans", var(--font-body), serif;
+  font-weight: 400;
+  line-height: 1.95;
+}
+
+/* Headings — Thmanyah Serif Display with its elegant contextual alternates. */
 .font-arabic-display {
   font-family: "Thmanyah Serif Display", "Thmanyah Sans", var(--font-body), serif;
   font-weight: 900;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  font-feature-settings: "salt" 1, "ss01" 1, "liga" 1, "calt" 1;
 }
 
 /* Utility: soft brand glow */

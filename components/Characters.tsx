@@ -154,7 +154,7 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
         {c.bio && c.bio.length > 0 ? (
           <p
             dir="rtl"
-            className="font-arabic mt-5 max-w-prose text-base leading-loose text-foreground/90"
+            className="font-arabic-text mt-5 max-w-prose text-lg text-foreground/90"
           >
             {c.bio}
           </p>
