@@ -26,6 +26,14 @@ export function Footer() {
           © {new Date().getFullYear()} 0xSultan — جميع الحقوق محفوظة.
         </p>
       </div>
+
+      {/* Confident, light protection tagline. */}
+      <p
+        dir="rtl"
+        className="font-arabic-text mx-auto max-w-2xl px-5 pb-9 text-center text-sm leading-relaxed text-muted/55"
+      >
+        🛡️ هذا الموقع محميٌّ بإتقان — كائنًا من كان، لن يكون أقوى من حمايته.
+      </p>
     </footer>
   );
 }
