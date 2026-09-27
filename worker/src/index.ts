@@ -24,6 +24,18 @@ const ALLOWED_ORIGINS = new Set([
   "https://0xsultan-develop.github.io",
 ]);
 
+// Valid Kick slugs are short and alphanumeric+underscore. Reject anything else
+// so the proxy can't be pushed junk, oversized, or path-manipulated input.
+const SLUG_RE = /^[A-Za-z0-9_]{1,30}$/;
+
+// Applied to every response — the proxy only ever returns JSON, is never framed,
+// and its content type must not be sniffed.
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "no-referrer",
+};
+
 function cors(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin");
   const allow = origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://nyzk.pages.dev";
@@ -31,7 +43,8 @@ function cors(req: Request): Record<string, string> {
     "Access-Control-Allow-Origin": allow,
     "Vary": "Origin",
     "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
   };
 }
 
@@ -40,7 +53,21 @@ function json(data: unknown, req: Request, maxAge = 60) {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": `public, max-age=${maxAge}`,
+      ...SECURITY_HEADERS,
       ...cors(req),
+    },
+  });
+}
+
+function fail(status: number, message: string, req: Request, extra?: Record<string, string>) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      ...SECURITY_HEADERS,
+      ...cors(req),
+      ...extra,
     },
   });
 }
@@ -177,12 +204,16 @@ async function getRegulars(slug: string) {
   }
 }
 
+/** Cloudflare rate-limit binding (see `ratelimits` in wrangler.jsonc). */
+type RateLimiter = { limit(opts: { key: string }): Promise<{ success: boolean }> };
+
 type Env = {
   FOLLOWERS_TIKTOK?: string;
   FOLLOWERS_X?: string;
   FOLLOWERS_DISCORD?: string;
   FOLLOWERS_KICK_FALLBACK?: string;
   DISCORD_GUILD_ID?: string;
+  RL?: RateLimiter;
 };
 
 const toNum = (v: unknown) => {
@@ -222,32 +253,51 @@ async function getFollowers(env: Env, kickLive: number | null) {
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
-    if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
+    if (req.method === "OPTIONS") {
+      return new Response(null, { headers: { ...SECURITY_HEADERS, ...cors(req) } });
+    }
+
+    // The proxy is read-only; nothing else is ever a legitimate request.
+    if (req.method !== "GET") {
+      return fail(405, "method not allowed", req, { Allow: "GET, OPTIONS" });
+    }
 
     const url = new URL(req.url);
-    const slug = (url.searchParams.get("slug") || "nyzzk").trim();
+
+    if (url.pathname !== "/kick" && url.pathname !== "/stats") {
+      return fail(404, "not found", req);
+    }
+
+    // Per-IP throttle before doing any upstream work, so abuse can't burn
+    // quota or turn the Worker into a free general-purpose Kick scraper.
+    const ip = req.headers.get("CF-Connecting-IP") ?? "unknown";
+    if (env.RL) {
+      const { success } = await env.RL.limit({ key: ip });
+      if (!success) return fail(429, "rate limit exceeded", req, { "Retry-After": "10" });
+    }
+
+    const rawSlug = (url.searchParams.get("slug") || "nyzzk").trim();
+    if (!SLUG_RE.test(rawSlug)) return fail(400, "invalid slug", req);
+    const slug = rawSlug;
 
     if (url.pathname === "/kick") {
       return json({ channel: await getChannel(slug) }, req, 30);
     }
 
-    if (url.pathname === "/stats") {
-      const [channel, clips, gifts, regulars] = await Promise.all([
-        getChannel(slug),
-        getClips(slug),
-        getGifts(slug),
-        getRegulars(slug),
-      ]);
-      return json({
-        followers: await getFollowers(env, channel?.followers ?? null),
-        channel,
-        clips,
-        topGifters: gifts,
-        streamRegulars: regulars,
-        updatedAt: new Date().toISOString(),
-      }, req);
-    }
-
-    return json({ ok: true, endpoints: ["/stats?slug=", "/kick?slug="] }, req);
+    // url.pathname === "/stats"
+    const [channel, clips, gifts, regulars] = await Promise.all([
+      getChannel(slug),
+      getClips(slug),
+      getGifts(slug),
+      getRegulars(slug),
+    ]);
+    return json({
+      followers: await getFollowers(env, channel?.followers ?? null),
+      channel,
+      clips,
+      topGifters: gifts,
+      streamRegulars: regulars,
+      updatedAt: new Date().toISOString(),
+    }, req);
   },
 };

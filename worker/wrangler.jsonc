@@ -4,6 +4,12 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "observability": { "enabled": true },
+  // Per-IP abuse protection. The site polls a couple of endpoints every
+  // 30-120s, so a real visitor never approaches this; it caps scrapers and
+  // anyone trying to burn quota through the proxy. period must be 10 or 60.
+  "ratelimits": [
+    { "name": "RL", "namespace_id": "1001", "simple": { "limit": 30, "period": 10 } }
+  ],
   // Public follower numbers shown on the site. Kick is live (this is the
   // fallback for when Kick hides followers_count from datacenter IPs).
   "vars": {
