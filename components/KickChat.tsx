@@ -130,6 +130,8 @@ const ChatRow = memo(function ChatRow({ m, subBadges }: { m: ChatMsg; subBadges:
 export function KickChat() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [status, setStatus] = useState<"connecting" | "idle" | "live">("connecting");
+  // null = unknown yet, true/false = channel live state (chat only flows live).
+  const [live, setLive] = useState<boolean | null>(null);
   const subBadges = useRef<SubBadge[]>([]);
   const seen = useRef<Set<string>>(new Set());
   const listRef = useRef<HTMLDivElement>(null);
@@ -160,9 +162,14 @@ export function KickChat() {
 
     async function tick() {
       try {
+        // Refresh channel info every tick so live-status (and thus the empty
+        // state) stays current; chatroomId/subBadges only need reading once.
+        const r = await fetch(`${base}/kick?slug=${encodeURIComponent(KICK_SLUG)}`, { cache: "no-store" });
+        const ch = ((await r.json()) as {
+          channel?: { chatroomId?: number; subscriberBadges?: SubBadge[]; live?: boolean };
+        }).channel;
+        if (!stop) setLive(Boolean(ch?.live));
         if (chatroomId == null) {
-          const r = await fetch(`${base}/kick?slug=${encodeURIComponent(KICK_SLUG)}`, { cache: "no-store" });
-          const ch = ((await r.json()) as { channel?: { chatroomId?: number; subscriberBadges?: SubBadge[] } }).channel;
           chatroomId = ch?.chatroomId ?? null;
           if (Array.isArray(ch?.subscriberBadges)) subBadges.current = ch!.subscriberBadges!;
         }
@@ -225,9 +232,11 @@ export function KickChat() {
       {msgs.length === 0 ? (
         <div className="flex flex-1 items-center justify-center px-4 text-center">
           <p className="text-xs text-muted">
-            {status === "connecting"
+            {live === false
+              ? "البث مو شغّال حالياً 🔴 — الشات يفتح أول ما يبدأ البث"
+              : status === "connecting"
               ? "جارٍ الاتصال بالشات…"
-              : "الشات متصل — ما فيه رسائل جديدة حالياً"}
+              : "الشات متصل — بانتظار رسائل جديدة"}
           </p>
         </div>
       ) : (
