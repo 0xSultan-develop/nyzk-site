@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { characters, type Character } from "@/lib/site";
 import { asset } from "@/lib/asset";
@@ -171,6 +171,9 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
 
 export function Characters() {
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Once the grid has entered, skip the scroll-entrance on later remounts
+  // (e.g. after opening a card and pressing back) so cards never stay hidden.
+  const hasRevealed = useRef(false);
   const activeIndex = characters.findIndex((c) => c.id === activeId);
   const active = activeIndex >= 0 ? characters[activeIndex] : null;
 
@@ -210,21 +213,35 @@ export function Characters() {
               transition={{ duration: 0.3, ease: EASE }}
               className={gridClass}
             >
-              {characters.map((c, i) => (
-                <motion.button
-                  key={c.id}
-                  layoutId={`card-${c.id}`}
-                  onClick={() => setActiveId(c.id)}
-                  initial={{ opacity: 0, y: 44 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-60px" }}
-                  whileHover={{ y: -8 }}
-                  transition={{ layout: SPRING, duration: 0.55, delay: i * 0.06, ease: EASE }}
-                  className="group relative aspect-[454/793] w-full cursor-pointer text-left"
-                >
-                  <GridInner c={c} />
-                </motion.button>
-              ))}
+              {characters.map((c, i) => {
+                const revealed = hasRevealed.current;
+                const reveal = revealed
+                  ? { initial: false as const, animate: { opacity: 1, y: 0 } }
+                  : {
+                      initial: { opacity: 0, y: 44 },
+                      whileInView: { opacity: 1, y: 0 },
+                      viewport: { once: true, margin: "-60px" },
+                      onViewportEnter: () => {
+                        hasRevealed.current = true;
+                      },
+                    };
+                return (
+                  <motion.button
+                    key={c.id}
+                    layoutId={`card-${c.id}`}
+                    onClick={() => {
+                      hasRevealed.current = true;
+                      setActiveId(c.id);
+                    }}
+                    {...reveal}
+                    whileHover={{ y: -8 }}
+                    transition={{ layout: SPRING, duration: 0.55, delay: revealed ? 0 : i * 0.06, ease: EASE }}
+                    className="group relative aspect-[454/793] w-full cursor-pointer text-left"
+                  >
+                    <GridInner c={c} />
+                  </motion.button>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>

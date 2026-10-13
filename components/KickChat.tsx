@@ -15,6 +15,8 @@ const PUSHER_KEY = "32cbd69e4b950bf97679";
 const PUSHER_URL = `wss://ws-us2.pusher.com/app/${PUSHER_KEY}?protocol=7&client=js&version=8.4.0&flash=false`;
 const STORE_KEY = `nyzk-chat:${KICK_SLUG}`;
 const MAX = 100;
+// Drop restored history older than this so stale chat doesn't linger on reload.
+const MAX_AGE_MS = 30 * 60 * 1000;
 
 // Kick badge type → local SVG (downloaded from Kick's set, served by us).
 const BADGE_SRC: Record<string, string> = {
@@ -31,7 +33,7 @@ const BADGE_SRC: Record<string, string> = {
 
 type Badge = { type: string; text: string; count?: number };
 type Part = { t: "text"; v: string } | { t: "emote"; id: string; name: string };
-type ChatMsg = { id: string; name: string; color: string; badges: Badge[]; parts: Part[] };
+type ChatMsg = { id: string; name: string; color: string; badges: Badge[]; parts: Part[]; ts: number };
 type SubBadge = { months: number; src: string };
 
 function parseContent(content: string): Part[] {
@@ -115,7 +117,10 @@ export function KickChat() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORE_KEY);
-      if (saved) setMsgs(JSON.parse(saved) as ChatMsg[]);
+      if (saved) {
+        const cutoff = Date.now() - MAX_AGE_MS;
+        setMsgs((JSON.parse(saved) as ChatMsg[]).filter((m) => (m.ts ?? 0) > cutoff));
+      }
     } catch {
       /* ignore */
     }
@@ -126,8 +131,17 @@ export function KickChat() {
     let ws: WebSocket | null = null;
     let closed = false;
     let retry: ReturnType<typeof setTimeout>;
+    let ping: ReturnType<typeof setInterval>;
+    let lastActivity = Date.now();
+
+    function reconnect(delay: number) {
+      clearInterval(ping);
+      clearTimeout(retry);
+      if (!closed) retry = setTimeout(connect, delay);
+    }
 
     async function connect() {
+      lastActivity = Date.now();
       let chatroomId: number | null = null;
       try {
         if (base) {
@@ -139,13 +153,15 @@ export function KickChat() {
       } catch {
         /* ignore */
       }
-      if (closed || !chatroomId) {
-        if (!closed) retry = setTimeout(connect, 5000);
+      if (closed) return;
+      if (!chatroomId) {
+        reconnect(5000);
         return;
       }
 
       ws = new WebSocket(PUSHER_URL);
       ws.onmessage = (e) => {
+        lastActivity = Date.now();
         let m: { event?: string; data?: unknown };
         try {
           m = JSON.parse(e.data as string);
@@ -173,6 +189,7 @@ export function KickChat() {
               color,
               badges: Array.isArray(d.sender?.identity?.badges) ? d.sender!.identity!.badges! : [],
               parts: parseContent(d.content || ""),
+              ts: Date.now(),
             };
             setStatus("live");
             setMsgs((prev) => [...prev.slice(-(MAX - 1)), msg]);
@@ -181,17 +198,51 @@ export function KickChat() {
           }
         }
       };
-      ws.onclose = () => {
-        if (!closed) retry = setTimeout(connect, 4000);
+      ws.onclose = () => reconnect(3000);
+      ws.onerror = () => {
+        try {
+          ws?.close();
+        } catch {
+          /* ignore */
+        }
       };
-      ws.onerror = () => ws?.close();
+
+      // Proactively ping so a dead link is noticed fast (Pusher keep-alive).
+      clearInterval(ping);
+      ping = setInterval(() => {
+        try {
+          ws?.send(JSON.stringify({ event: "pusher:ping", data: {} }));
+        } catch {
+          /* ignore */
+        }
+      }, 30000);
     }
 
     connect();
+
+    // Watchdog: if nothing arrives for a while (not even a ping), the socket is
+    // probably silently dead — tear it down and reconnect so chat stays live.
+    const watchdog = setInterval(() => {
+      if (!closed && Date.now() - lastActivity > 45000) {
+        try {
+          ws?.close();
+        } catch {
+          /* ignore */
+        }
+        reconnect(500);
+      }
+    }, 15000);
+
     return () => {
       closed = true;
       clearTimeout(retry);
-      ws?.close();
+      clearInterval(ping);
+      clearInterval(watchdog);
+      try {
+        ws?.close();
+      } catch {
+        /* ignore */
+      }
     };
   }, []);
 
