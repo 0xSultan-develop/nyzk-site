@@ -95,7 +95,8 @@ export function LiveStream({ initial }: { initial: KickChannel | null }) {
           <div className="flex items-center border-b border-border px-4 py-3">
             <span className="font-arabic text-sm font-bold">الشات المباشر</span>
           </div>
-          {/* Official Kick chat embed. See components/KickChat.tsx. */}
+          {/* Native live chat — the viewer's own browser connects directly to
+              Kick's public chat stream (no iframe). See components/KickChat.tsx. */}
           <KickChat />
           <a
             href={site.kickUrl}
