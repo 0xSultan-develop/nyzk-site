@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { characters, type Character } from "@/lib/site";
 import { asset } from "@/lib/asset";
 import { SectionTitle } from "./Reveal";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+// Smooth spring for the card ⇄ detail morph and the section height change.
+const SPRING = { type: "spring", stiffness: 190, damping: 30, mass: 0.9 } as const;
 
 // Fine fractal-noise texture for a subtle sandy/light speckle at the edges.
 const GRAIN =
@@ -21,10 +23,10 @@ const EDGE =
 const hex = (a: string | undefined) => a ?? "#a855f7";
 
 /** Full-bleed portrait: the image IS the card — no background, no border, feathered edges. */
-function Portrait({ c, watermark }: { c: Character; watermark?: string }) {
+function Portrait({ c, watermark, layoutId }: { c: Character; watermark?: string; layoutId?: string }) {
   const a = hex(c.accent);
   return (
-    <div className="absolute inset-0">
+    <motion.div layoutId={layoutId} transition={SPRING} className="absolute inset-0">
       <div
         className="absolute inset-0 transform-gpu transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         style={{ maskImage: FEATHER, WebkitMaskImage: FEATHER }}
@@ -61,7 +63,7 @@ function Portrait({ c, watermark }: { c: Character; watermark?: string }) {
           {watermark ?? c.name.slice(0, 2).toUpperCase()}
         </span>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -73,7 +75,7 @@ function GridInner({ c }: { c: Character }) {
         className="pointer-events-none absolute -inset-4 rounded-[3rem] opacity-40 blur-3xl transition-opacity duration-500 group-hover:opacity-80"
         style={{ background: `radial-gradient(60% 60% at 50% 60%, ${a}40, transparent 70%)` }}
       />
-      <Portrait c={c} />
+      <Portrait c={c} layoutId={`portrait-${c.id}`} />
       <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/70 via-black/15 to-transparent px-4 pb-5 pt-10">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -95,16 +97,22 @@ function GridInner({ c }: { c: Character }) {
 function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
   const a = hex(c.accent);
   return (
-    <div className="group relative grid min-h-[20rem] gap-0 md:grid-cols-[35%_1fr]">
+    <div className="relative grid min-h-[20rem] gap-0 md:grid-cols-[35%_1fr]">
       <div
         className="pointer-events-none absolute -inset-4 rounded-[3rem] opacity-50 blur-3xl"
         style={{ background: `radial-gradient(45% 60% at 20% 55%, ${a}44, transparent 70%)` }}
       />
       <div className="relative mx-auto aspect-[454/793] w-full max-w-[15rem] self-center md:max-w-[17rem]">
-        <Portrait c={c} />
+        <Portrait c={c} layoutId={`portrait-${c.id}`} />
       </div>
 
-      <div className="relative flex flex-col justify-center p-6 sm:p-9">
+      {/* info fades in only after the card has traveled + expanded */}
+      <motion.div
+        initial={{ opacity: 0, x: 16 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.28, ease: EASE }}
+        className="relative flex flex-col justify-center p-6 sm:p-9"
+      >
         <div className="mb-5">
           <button
             onClick={onBack}
@@ -149,7 +157,7 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
             <span className="italic">السيرة قريبًا.</span>
           </p>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -157,23 +165,26 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
 export function Characters() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const active = characters.find((c) => c.id === activeId) ?? null;
+  // Play the staggered entrance only on the first mount; on later renders
+  // (after opening/closing a card) cards appear instantly so the one that
+  // morphs back is NEVER left stuck at opacity 0 → it can't disappear.
+  const seen = useRef(false);
+  useEffect(() => {
+    seen.current = true;
+  }, []);
 
-  // Close on Escape + lock body scroll while the detail overlay is open.
+  // Close the open card with Escape.
   useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setActiveId(null);
     };
     window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [active]);
 
-  // Center the grid when there are only a few characters.
+  // Center the grid when there are only a few characters so a lone card
+  // doesn't sit small and lonely at the far left.
   const count = characters.length;
   const gridClass =
     count === 1
@@ -188,49 +199,39 @@ export function Characters() {
     <section id="characters" className="relative mx-auto max-w-7xl px-5 py-24">
       <SectionTitle eyebrow="The Cast" title="NyZk Characters" arabic="شخصيات نيزك" />
 
-      {/* Grid stays mounted at all times → cards never vanish after closing. */}
-      <div className={gridClass}>
-        {characters.map((c, i) => (
-          <motion.button
-            key={c.id}
-            onClick={() => setActiveId(c.id)}
-            initial={{ opacity: 0, y: 44 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            whileHover={{ y: -8 }}
-            transition={{ duration: 0.55, delay: i * 0.06, ease: EASE }}
-            className="group relative aspect-[454/793] w-full cursor-pointer text-left"
-          >
-            <GridInner c={c} />
-          </motion.button>
-        ))}
-      </div>
-
-      {/* Detail opens as a clean modal — fade + scale, robust (no shared-layout). */}
-      <AnimatePresence>
-        {active && (
-          <motion.div
-            key="overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            onClick={() => setActiveId(null)}
-            className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/80 p-4 py-10 sm:items-center sm:p-8"
-          >
+      {/* layout wrapper animates the section height so nothing jumps/cuts.
+          The clicked card (shared layoutId) morphs smoothly into the detail. */}
+      <motion.div layout transition={SPRING}>
+        <AnimatePresence mode="popLayout">
+          {active ? (
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 24 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 12 }}
-              transition={{ duration: 0.35, ease: EASE }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative my-auto w-full max-w-4xl overflow-hidden rounded-[2rem] border border-border bg-surface shadow-2xl"
+              key="detail"
+              layoutId={`card-${active.id}`}
+              transition={SPRING}
+              className="group relative w-full"
             >
               <DetailInner c={active} onBack={() => setActiveId(null)} />
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          ) : (
+            <motion.div key="grid" className={gridClass}>
+              {characters.map((c, i) => (
+                <motion.button
+                  key={c.id}
+                  layoutId={`card-${c.id}`}
+                  onClick={() => setActiveId(c.id)}
+                  initial={seen.current ? false : { opacity: 0, y: 44 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -8 }}
+                  transition={{ layout: SPRING, duration: 0.55, delay: seen.current ? 0 : i * 0.06, ease: EASE }}
+                  className="group relative aspect-[454/793] w-full cursor-pointer text-left"
+                >
+                  <GridInner c={c} />
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </section>
   );
 }
