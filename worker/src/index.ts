@@ -72,11 +72,11 @@ function fail(status: number, message: string, req: Request, extra?: Record<stri
   });
 }
 
-async function kickFetch(path: string) {
+async function kickFetch(path: string, cacheTtl = 30) {
   const res = await fetch(`${V2}${path}`, {
     headers: { Accept: "application/json", "User-Agent": UA },
     signal: AbortSignal.timeout(9000),
-    cf: { cacheTtl: 30, cacheEverything: true },
+    cf: { cacheTtl, cacheEverything: true },
   });
   if (!res.ok) throw new Error(`kick ${path} → ${res.status}`);
   return res.json();
@@ -113,6 +113,38 @@ async function getChannel(slug: string) {
     };
   } catch {
     return null;
+  }
+}
+
+async function getMessages(chatroomId: number) {
+  try {
+    const d = (await kickFetch(`/channels/${chatroomId}/messages`, 3)) as Record<string, unknown>;
+    const data = (d.data ?? {}) as Record<string, unknown>;
+    const rows = (data.messages as Record<string, unknown>[] | undefined) ?? [];
+    const msgs = rows.map((m) => {
+      const sender = (m.sender ?? {}) as Record<string, unknown>;
+      const identity = (sender.identity ?? {}) as Record<string, unknown>;
+      const badges = (identity.badges as Record<string, unknown>[] | undefined) ?? [];
+      return {
+        id: str(m.id) ?? "",
+        content: str(m.content) ?? "",
+        createdAt: str(m.created_at) ?? "",
+        sender: {
+          username: str(sender.username) ?? "user",
+          identity: {
+            color: str(identity.color) ?? "",
+            badges: badges
+              .map((b) => ({ type: str(b.type), text: str(b.text), count: num(b.count) }))
+              .filter((b) => b.type != null),
+          },
+        },
+      };
+    });
+    // Kick returns newest-first; present oldest-first for append-on-poll.
+    msgs.sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
+    return msgs;
+  } catch {
+    return [];
   }
 }
 
@@ -264,7 +296,7 @@ export default {
 
     const url = new URL(req.url);
 
-    if (url.pathname !== "/kick" && url.pathname !== "/stats") {
+    if (url.pathname !== "/kick" && url.pathname !== "/stats" && url.pathname !== "/messages") {
       return fail(404, "not found", req);
     }
 
@@ -282,6 +314,16 @@ export default {
 
     if (url.pathname === "/kick") {
       return json({ channel: await getChannel(slug) }, req, 30);
+    }
+
+    if (url.pathname === "/messages") {
+      let chatroomId = Number(url.searchParams.get("chatroomId") || "");
+      if (!Number.isInteger(chatroomId) || chatroomId <= 0) {
+        const ch = await getChannel(slug);
+        chatroomId = ch?.chatroomId ?? 0;
+      }
+      if (!chatroomId) return json({ messages: [] }, req, 3);
+      return json({ messages: await getMessages(chatroomId) }, req, 3);
     }
 
     // url.pathname === "/stats"

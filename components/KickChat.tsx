@@ -1,22 +1,22 @@
 "use client";
 
 /**
- * Native live chat — reads Kick's PUBLIC chatroom stream directly in the
- * viewer's browser (the same public Pusher channel Kick's own site uses). No
- * third-party service. Renders Kick badges (broadcaster/mod/sub/OG/VIP/…),
- * emotes, colored names, and persists recent messages to localStorage so the
- * chat isn't empty on reload — just like Kick.
+ * Live chat — polls Kick's recent chat messages through our Cloudflare Worker
+ * (Kick moved its realtime stream to a private WebSocket, so the old public
+ * Pusher channel no longer works; the REST history endpoint is stable). The
+ * Worker fetches server-side, so there's no browser CORS/geoblock. Renders Kick
+ * badges, emotes and colored names, and persists recent messages so the chat
+ * isn't blank on reload — just like Kick.
  */
 import { memo, useEffect, useRef, useState } from "react";
 import { KICK_SLUG } from "@/lib/site";
 import { asset } from "@/lib/asset";
 
-const PUSHER_KEY = "32cbd69e4b950bf97679";
-const PUSHER_URL = `wss://ws-us2.pusher.com/app/${PUSHER_KEY}?protocol=7&client=js&version=8.4.0&flash=false`;
 const STORE_KEY = `nyzk-chat:${KICK_SLUG}`;
 const MAX = 100;
 // Drop restored history older than this so stale chat doesn't linger on reload.
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const POLL_MS = 4000;
 
 // Kick badge type → local SVG (downloaded from Kick's set, served by us).
 const BADGE_SRC: Record<string, string> = {
@@ -36,6 +36,14 @@ type Part = { t: "text"; v: string } | { t: "emote"; id: string; name: string };
 type ChatMsg = { id: string; name: string; color: string; badges: Badge[]; parts: Part[]; ts: number };
 type SubBadge = { months: number; src: string };
 
+// Shape returned by the Worker's /messages endpoint.
+type ApiMsg = {
+  id: string;
+  content: string;
+  createdAt: string;
+  sender?: { username?: string; identity?: { color?: string; badges?: Badge[] } };
+};
+
 function parseContent(content: string): Part[] {
   const parts: Part[] = [];
   const re = /\[emote:(\d+):([^\]]+)\]/g;
@@ -48,6 +56,19 @@ function parseContent(content: string): Part[] {
   }
   if (last < content.length) parts.push({ t: "text", v: content.slice(last) });
   return parts;
+}
+
+function toChatMsg(a: ApiMsg): ChatMsg {
+  const rawColor = a.sender?.identity?.color || "";
+  const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : "#a78bfa";
+  return {
+    id: a.id || Math.random().toString(36),
+    name: a.sender?.username || "user",
+    color,
+    badges: Array.isArray(a.sender?.identity?.badges) ? a.sender!.identity!.badges! : [],
+    parts: parseContent(a.content || ""),
+    ts: Date.parse(a.createdAt) || Date.now(),
+  };
 }
 
 function BadgeIcon({ b, subBadges }: { b: Badge; subBadges: SubBadge[] }) {
@@ -110,6 +131,7 @@ export function KickChat() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [status, setStatus] = useState<"connecting" | "idle" | "live">("connecting");
   const subBadges = useRef<SubBadge[]>([]);
+  const seen = useRef<Set<string>>(new Set());
   const listRef = useRef<HTMLDivElement>(null);
   const atBottom = useRef(true);
 
@@ -119,140 +141,60 @@ export function KickChat() {
       const saved = localStorage.getItem(STORE_KEY);
       if (saved) {
         const cutoff = Date.now() - MAX_AGE_MS;
-        setMsgs((JSON.parse(saved) as ChatMsg[]).filter((m) => (m.ts ?? 0) > cutoff));
+        const list = (JSON.parse(saved) as ChatMsg[]).filter((m) => (m.ts ?? 0) > cutoff);
+        list.forEach((m) => seen.current.add(m.id));
+        setMsgs(list);
       }
     } catch {
       /* ignore */
     }
   }, []);
 
+  // Poll Kick's recent messages through the Worker and append new ones.
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_DATA_URL;
-    let ws: WebSocket | null = null;
-    let closed = false;
-    let retry: ReturnType<typeof setTimeout>;
-    let ping: ReturnType<typeof setInterval>;
-    let lastActivity = Date.now();
+    if (!base) return;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let chatroomId: number | null = null;
 
-    function reconnect(delay: number) {
-      clearInterval(ping);
-      clearTimeout(retry);
-      if (!closed) retry = setTimeout(connect, delay);
-    }
-
-    async function connect() {
-      lastActivity = Date.now();
-      let chatroomId: number | null = null;
+    async function tick() {
       try {
-        if (base) {
+        if (chatroomId == null) {
           const r = await fetch(`${base}/kick?slug=${encodeURIComponent(KICK_SLUG)}`, { cache: "no-store" });
           const ch = ((await r.json()) as { channel?: { chatroomId?: number; subscriberBadges?: SubBadge[] } }).channel;
           chatroomId = ch?.chatroomId ?? null;
           if (Array.isArray(ch?.subscriberBadges)) subBadges.current = ch!.subscriberBadges!;
         }
-      } catch {
-        /* ignore */
-      }
-      if (closed) return;
-      if (!chatroomId) {
-        reconnect(5000);
-        return;
-      }
-
-      ws = new WebSocket(PUSHER_URL);
-      ws.onmessage = (e) => {
-        lastActivity = Date.now();
-        let m: { event?: string; data?: unknown };
-        try {
-          m = JSON.parse(e.data as string);
-        } catch {
-          return;
-        }
-        if (m.event === "pusher:connection_established") {
-          setStatus("idle");
-          ws?.send(JSON.stringify({ event: "pusher:subscribe", data: { auth: "", channel: `chatrooms.${chatroomId}.v2` } }));
-        } else if (m.event === "pusher:ping") {
-          ws?.send(JSON.stringify({ event: "pusher:pong", data: {} }));
-        } else if (m.event === "App\\Events\\ChatMessageEvent") {
-          try {
-            const d = JSON.parse(m.data as string) as {
-              id: string;
-              content: string;
-              sender?: { username?: string; identity?: { color?: string; badges?: Badge[] } };
-            };
-            // Validate the color (untrusted) so only a real hex reaches `style`.
-            const rawColor = d.sender?.identity?.color || "";
-            const color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : "#a78bfa";
-            const msg: ChatMsg = {
-              id: d.id || Math.random().toString(36),
-              name: d.sender?.username || "user",
-              color,
-              badges: Array.isArray(d.sender?.identity?.badges) ? d.sender!.identity!.badges! : [],
-              parts: parseContent(d.content || ""),
-              ts: Date.now(),
-            };
+        const q = chatroomId
+          ? `chatroomId=${chatroomId}`
+          : `slug=${encodeURIComponent(KICK_SLUG)}`;
+        const res = await fetch(`${base}/messages?${q}`, { cache: "no-store" });
+        const list = ((await res.json()) as { messages?: ApiMsg[] }).messages ?? [];
+        if (!stop) {
+          const fresh = list.filter((a) => a.id && !seen.current.has(a.id));
+          if (fresh.length) {
+            fresh.forEach((a) => seen.current.add(a.id));
+            setMsgs((prev) => [...prev, ...fresh.map(toChatMsg)].slice(-MAX));
             setStatus("live");
-            setMsgs((prev) => [...prev.slice(-(MAX - 1)), msg]);
-          } catch {
-            /* ignore */
+          } else {
+            setStatus((s) => (s === "live" ? "live" : "idle"));
           }
         }
-      };
-      ws.onclose = () => reconnect(3000);
-      ws.onerror = () => {
-        try {
-          ws?.close();
-        } catch {
-          /* ignore */
-        }
-      };
-
-      // Proactively ping so a dead link is noticed fast (Pusher keep-alive).
-      clearInterval(ping);
-      ping = setInterval(() => {
-        try {
-          ws?.send(JSON.stringify({ event: "pusher:ping", data: {} }));
-        } catch {
-          /* ignore */
-        }
-      }, 30000);
+      } catch {
+        /* keep previous messages; try again next tick */
+      }
+      if (!stop) timer = setTimeout(tick, POLL_MS);
     }
 
-    connect();
-
-    // Watchdog: if nothing arrives for a while (not even a ping), the socket is
-    // probably silently dead — tear it down and reconnect so chat stays live.
-    const watchdog = setInterval(() => {
-      if (!closed && Date.now() - lastActivity > 45000) {
-        try {
-          ws?.close();
-        } catch {
-          /* ignore */
-        }
-        reconnect(500);
-      }
-    }, 15000);
-
+    tick();
     return () => {
-      closed = true;
-      clearTimeout(retry);
-      clearInterval(ping);
-      clearInterval(watchdog);
-      try {
-        ws?.close();
-      } catch {
-        /* ignore */
-      }
+      stop = true;
+      clearTimeout(timer);
     };
   }, []);
 
-  useEffect(() => {
-    const el = listRef.current;
-    if (el && atBottom.current) el.scrollTop = el.scrollHeight;
-  }, [msgs]);
-
-  // Persist recent history, but debounced — writing on every incoming message
-  // (JSON of up to 100 msgs) during a busy stream janks the main thread.
+  // Keep history (debounced) so the chat isn't blank on the next reload.
   useEffect(() => {
     if (msgs.length === 0) return;
     const t = setTimeout(() => {
@@ -263,6 +205,12 @@ export function KickChat() {
       }
     }, 1000);
     return () => clearTimeout(t);
+  }, [msgs]);
+
+  // Auto-scroll to newest unless the viewer has scrolled up to read history.
+  useEffect(() => {
+    const el = listRef.current;
+    if (el && atBottom.current) el.scrollTop = el.scrollHeight;
   }, [msgs]);
 
   return (
