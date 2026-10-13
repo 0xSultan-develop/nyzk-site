@@ -23,7 +23,7 @@ export type Social = {
 };
 
 const tiktok = process.env.NEXT_PUBLIC_TIKTOK_USERNAME ?? "..rh32";
-const x = process.env.NEXT_PUBLIC_X_USERNAME ?? "nyzk65";
+const x = process.env.NEXT_PUBLIC_X_USERNAME ?? "nyzk_6";
 
 export const socials: Social[] = [
   {
