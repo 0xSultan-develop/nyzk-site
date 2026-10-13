@@ -1,21 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { characters, type Character } from "@/lib/site";
 import { asset } from "@/lib/asset";
 import { SectionTitle } from "./Reveal";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-// Smooth spring for the card ⇄ detail morph and the section height change.
-const SPRING = { type: "spring", stiffness: 190, damping: 30, mass: 0.9 } as const;
 
 // Fine fractal-noise texture for a subtle sandy/light speckle at the edges.
 const GRAIN =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 // Smooth oval fade so the image dissolves like light — never a hard rectangle.
-// Generous solid center so the full character stays visible; edges still melt.
 const FEATHER =
   "radial-gradient(135% 145% at 50% 45%, #000 74%, rgba(0,0,0,0.72) 88%, transparent 100%)";
 const EDGE =
@@ -24,10 +21,10 @@ const EDGE =
 const hex = (a: string | undefined) => a ?? "#a855f7";
 
 /** Full-bleed portrait: the image IS the card — no background, no border, feathered edges. */
-function Portrait({ c, watermark, layoutId }: { c: Character; watermark?: string; layoutId?: string }) {
+function Portrait({ c, watermark }: { c: Character; watermark?: string }) {
   const a = hex(c.accent);
   return (
-    <motion.div layoutId={layoutId} transition={SPRING} className="absolute inset-0">
+    <div className="absolute inset-0">
       <div
         className="absolute inset-0 transform-gpu transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         style={{ maskImage: FEATHER, WebkitMaskImage: FEATHER }}
@@ -64,7 +61,7 @@ function Portrait({ c, watermark, layoutId }: { c: Character; watermark?: string
           {watermark ?? c.name.slice(0, 2).toUpperCase()}
         </span>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -76,7 +73,7 @@ function GridInner({ c }: { c: Character }) {
         className="pointer-events-none absolute -inset-4 rounded-[3rem] opacity-40 blur-3xl transition-opacity duration-500 group-hover:opacity-80"
         style={{ background: `radial-gradient(60% 60% at 50% 60%, ${a}40, transparent 70%)` }}
       />
-      <Portrait c={c} layoutId={`portrait-${c.id}`} />
+      <Portrait c={c} />
       <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/70 via-black/15 to-transparent px-4 pb-5 pt-10">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -98,28 +95,22 @@ function GridInner({ c }: { c: Character }) {
 function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
   const a = hex(c.accent);
   return (
-    <div className="relative grid min-h-[20rem] gap-0 md:grid-cols-[35%_1fr]">
+    <div className="group relative grid min-h-[20rem] gap-0 md:grid-cols-[35%_1fr]">
       <div
         className="pointer-events-none absolute -inset-4 rounded-[3rem] opacity-50 blur-3xl"
         style={{ background: `radial-gradient(45% 60% at 20% 55%, ${a}44, transparent 70%)` }}
       />
       <div className="relative mx-auto aspect-[454/793] w-full max-w-[15rem] self-center md:max-w-[17rem]">
-        <Portrait c={c} layoutId={`portrait-${c.id}`} />
+        <Portrait c={c} />
       </div>
 
-      {/* info fades in only after the card has traveled + expanded */}
-      <motion.div
-        initial={{ opacity: 0, x: 16 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.28, ease: EASE }}
-        className="relative flex flex-col justify-center p-6 sm:p-9"
-      >
+      <div className="relative flex flex-col justify-center p-6 sm:p-9">
         <div className="mb-5">
           <button
             onClick={onBack}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted transition-colors hover:border-white/20 hover:text-foreground"
           >
-← رجوع
+            ← رجوع
           </button>
         </div>
 
@@ -135,9 +126,7 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
             <dl className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
               {c.traits.map((t) => (
                 <div key={t.label} className="flex items-baseline gap-2 text-sm">
-                  <dt className="text-[11px] uppercase tracking-[0.2em] text-muted">
-                    {t.label}
-                  </dt>
+                  <dt className="text-[11px] uppercase tracking-[0.2em] text-muted">{t.label}</dt>
                   <dd className="font-display font-semibold text-foreground">{t.value}</dd>
                 </div>
               ))}
@@ -152,10 +141,7 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
         )}
 
         {c.bio && c.bio.length > 0 ? (
-          <p
-            dir="rtl"
-            className="font-arabic-text mt-5 max-w-prose text-lg text-foreground/90"
-          >
+          <p dir="rtl" className="font-arabic-text mt-5 max-w-prose text-lg text-foreground/90">
             {c.bio}
           </p>
         ) : (
@@ -163,22 +149,31 @@ function DetailInner({ c, onBack }: { c: Character; onBack: () => void }) {
             <span className="italic">السيرة قريبًا.</span>
           </p>
         )}
-
-      </motion.div>
+      </div>
     </div>
   );
 }
 
 export function Characters() {
   const [activeId, setActiveId] = useState<string | null>(null);
-  // Once the grid has entered, skip the scroll-entrance on later remounts
-  // (e.g. after opening a card and pressing back) so cards never stay hidden.
-  const hasRevealed = useRef(false);
-  const activeIndex = characters.findIndex((c) => c.id === activeId);
-  const active = activeIndex >= 0 ? characters[activeIndex] : null;
+  const active = characters.find((c) => c.id === activeId) ?? null;
 
-  // Center the grid when there are only a few characters so a lone card
-  // doesn't sit small and lonely at the far left.
+  // Close on Escape + lock body scroll while the detail overlay is open.
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActiveId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [active]);
+
+  // Center the grid when there are only a few characters.
   const count = characters.length;
   const gridClass =
     count === 1
@@ -193,59 +188,49 @@ export function Characters() {
     <section id="characters" className="relative mx-auto max-w-7xl px-5 py-24">
       <SectionTitle eyebrow="The Cast" title="NyZk Characters" arabic="شخصيات نيزك" />
 
-      {/* layout wrapper animates the section height so nothing jumps/cuts.
-          The clicked card (shared layoutId) morphs smoothly into the detail. */}
-      <motion.div layout transition={SPRING}>
-        <AnimatePresence mode="popLayout">
-          {active ? (
+      {/* Grid stays mounted at all times → cards never vanish after closing. */}
+      <div className={gridClass}>
+        {characters.map((c, i) => (
+          <motion.button
+            key={c.id}
+            onClick={() => setActiveId(c.id)}
+            initial={{ opacity: 0, y: 44 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            whileHover={{ y: -8 }}
+            transition={{ duration: 0.55, delay: i * 0.06, ease: EASE }}
+            className="group relative aspect-[454/793] w-full cursor-pointer text-left"
+          >
+            <GridInner c={c} />
+          </motion.button>
+        ))}
+      </div>
+
+      {/* Detail opens as a clean modal — fade + scale, robust (no shared-layout). */}
+      <AnimatePresence>
+        {active && (
+          <motion.div
+            key="overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={() => setActiveId(null)}
+            className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/80 p-4 py-10 sm:items-center sm:p-8"
+          >
             <motion.div
-              key="detail"
-              layoutId={`card-${active.id}`}
-              transition={SPRING}
-              className="group relative w-full"
+              initial={{ opacity: 0, scale: 0.92, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative my-auto w-full max-w-4xl overflow-hidden rounded-[2rem] border border-border bg-surface shadow-2xl"
             >
               <DetailInner c={active} onBack={() => setActiveId(null)} />
             </motion.div>
-          ) : (
-            <motion.div
-              key="grid"
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, ease: EASE }}
-              className={gridClass}
-            >
-              {characters.map((c, i) => {
-                const revealed = hasRevealed.current;
-                const reveal = revealed
-                  ? { initial: false as const, animate: { opacity: 1, y: 0 } }
-                  : {
-                      initial: { opacity: 0, y: 44 },
-                      whileInView: { opacity: 1, y: 0 },
-                      viewport: { once: true, margin: "-60px" },
-                      onViewportEnter: () => {
-                        hasRevealed.current = true;
-                      },
-                    };
-                return (
-                  <motion.button
-                    key={c.id}
-                    layoutId={`card-${c.id}`}
-                    onClick={() => {
-                      hasRevealed.current = true;
-                      setActiveId(c.id);
-                    }}
-                    {...reveal}
-                    whileHover={{ y: -8 }}
-                    transition={{ layout: SPRING, duration: 0.55, delay: revealed ? 0 : i * 0.06, ease: EASE }}
-                    className="group relative aspect-[454/793] w-full cursor-pointer text-left"
-                  >
-                    <GridInner c={c} />
-                  </motion.button>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

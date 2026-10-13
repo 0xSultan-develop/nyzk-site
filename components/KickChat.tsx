@@ -16,7 +16,7 @@ const PUSHER_URL = `wss://ws-us2.pusher.com/app/${PUSHER_KEY}?protocol=7&client=
 const STORE_KEY = `nyzk-chat:${KICK_SLUG}`;
 const MAX = 100;
 // Drop restored history older than this so stale chat doesn't linger on reload.
-const MAX_AGE_MS = 30 * 60 * 1000;
+const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 // Kick badge type → local SVG (downloaded from Kick's set, served by us).
 const BADGE_SRC: Record<string, string> = {
@@ -275,9 +275,11 @@ export function KickChat() {
       className="scroll-thin flex min-h-[480px] flex-1 flex-col gap-1.5 overflow-y-auto bg-black/40 px-3 py-3 lg:min-h-0"
     >
       {msgs.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-1 items-center justify-center px-4 text-center">
           <p className="text-xs text-muted">
-            {status === "live" ? "…" : "بانتظار رسائل الشات المباشر…"}
+            {status === "connecting"
+              ? "جارٍ الاتصال بالشات…"
+              : "الشات متصل — ما فيه رسائل جديدة حالياً"}
           </p>
         </div>
       ) : (
