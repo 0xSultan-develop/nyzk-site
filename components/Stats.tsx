@@ -106,6 +106,7 @@ function Board({
   searchLimit?: number;
 }) {
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
   const q = query.trim().toLowerCase();
   // With a search term, look across the whole list; otherwise show the top N.
   const shown = searchable && q
@@ -120,39 +121,58 @@ function Board({
       transition={{ duration: 0.55, delay, ease: EASE }}
       className="flex flex-col rounded-2xl border border-border bg-surface p-6"
     >
-      <div className="mb-4 flex items-baseline justify-end">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        {searchable && rows.length > 0 ? (
+          <button
+            onClick={() => {
+              setOpen((o) => {
+                if (o) setQuery("");
+                return !o;
+              });
+            }}
+            aria-label="بحث"
+            aria-expanded={open}
+            className={`grid h-8 w-8 place-items-center rounded-full border border-border transition-colors hover:bg-surface-2 ${
+              open ? "text-purple-bright" : "text-muted"
+            }`}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </button>
+        ) : (
+          <span />
+        )}
         <h3 className="font-arabic text-lg font-bold" dir="rtl">
           {arabic || title}
         </h3>
       </div>
 
-      {searchable && rows.length > 0 && (
+      {searchable && open && rows.length > 0 && (
         <div className="relative mb-3">
-          <svg
-            viewBox="0 0 24 24"
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            autoFocus
             dir="rtl"
-            placeholder="ابحث باسم المستخدم…"
-            className="w-full rounded-xl border border-border bg-surface-2 py-2 pr-4 pl-9 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-purple/60"
+            placeholder="اكتب اسم المستخدم…"
+            className="w-full rounded-xl border border-border bg-surface-2 px-4 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-purple/60"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
               aria-label="مسح"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-foreground"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-foreground"
             >
               ✕
             </button>
