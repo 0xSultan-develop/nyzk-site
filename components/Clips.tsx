@@ -165,7 +165,9 @@ export function Clips({ clips }: { clips: KickClip[] }) {
                   <img
                     src={clip.thumbnail}
                     alt={clip.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transform-gpu transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
                   <div className="h-full w-full bg-[radial-gradient(60%_60%_at_50%_50%,rgba(124,58,237,0.25),transparent)]" />

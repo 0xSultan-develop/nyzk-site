@@ -7,7 +7,7 @@
  * emotes, colored names, and persists recent messages to localStorage so the
  * chat isn't empty on reload — just like Kick.
  */
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { KICK_SLUG } from "@/lib/site";
 import { asset } from "@/lib/asset";
 
@@ -72,6 +72,37 @@ function BadgeIcon({ b, subBadges }: { b: Badge; subBadges: SubBadge[] }) {
     />
   );
 }
+
+// One chat line. Memoized so a new message doesn't re-render the whole list.
+const ChatRow = memo(function ChatRow({ m, subBadges }: { m: ChatMsg; subBadges: SubBadge[] }) {
+  return (
+    <p className="text-sm leading-snug">
+      {m.badges.map((b, i) => (
+        <BadgeIcon key={i} b={b} subBadges={subBadges} />
+      ))}
+      <span className="font-semibold" style={{ color: m.color }}>
+        {m.name}
+      </span>
+      <span className="text-muted">: </span>
+      {m.parts.map((p, i) =>
+        p.t === "text" ? (
+          <span key={i} className="text-foreground/90">
+            {p.v}
+          </span>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={i}
+            src={`https://files.kick.com/emotes/${p.id}/fullsize`}
+            alt={p.name}
+            loading="lazy"
+            className="mx-0.5 inline-block h-6 w-6 align-middle"
+          />
+        ),
+      )}
+    </p>
+  );
+});
 
 export function KickChat() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
@@ -144,15 +175,7 @@ export function KickChat() {
               parts: parseContent(d.content || ""),
             };
             setStatus("live");
-            setMsgs((prev) => {
-              const next = [...prev.slice(-(MAX - 1)), msg];
-              try {
-                localStorage.setItem(STORE_KEY, JSON.stringify(next));
-              } catch {
-                /* quota / private mode */
-              }
-              return next;
-            });
+            setMsgs((prev) => [...prev.slice(-(MAX - 1)), msg]);
           } catch {
             /* ignore */
           }
@@ -177,6 +200,20 @@ export function KickChat() {
     if (el && atBottom.current) el.scrollTop = el.scrollHeight;
   }, [msgs]);
 
+  // Persist recent history, but debounced — writing on every incoming message
+  // (JSON of up to 100 msgs) during a busy stream janks the main thread.
+  useEffect(() => {
+    if (msgs.length === 0) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(msgs));
+      } catch {
+        /* quota / private mode */
+      }
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [msgs]);
+
   return (
     <div
       ref={listRef}
@@ -193,32 +230,7 @@ export function KickChat() {
           </p>
         </div>
       ) : (
-        msgs.map((m) => (
-          <p key={m.id} className="text-sm leading-snug">
-            {m.badges.map((b, i) => (
-              <BadgeIcon key={i} b={b} subBadges={subBadges.current} />
-            ))}
-            <span className="font-semibold" style={{ color: m.color }}>
-              {m.name}
-            </span>
-            <span className="text-muted">: </span>
-            {m.parts.map((p, i) =>
-              p.t === "text" ? (
-                <span key={i} className="text-foreground/90">
-                  {p.v}
-                </span>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={i}
-                  src={`https://files.kick.com/emotes/${p.id}/fullsize`}
-                  alt={p.name}
-                  className="mx-0.5 inline-block h-6 w-6 align-middle"
-                />
-              ),
-            )}
-          </p>
-        ))
+        msgs.map((m) => <ChatRow key={m.id} m={m} subBadges={subBadges.current} />)
       )}
     </div>
   );

@@ -61,7 +61,7 @@ function Card({ s, i, wide }: { s: Social; i: number; wide?: boolean }) {
     >
       <Wrapper
         {...(!soon ? { href: s.url, target: "_blank", rel: "noreferrer" } : {})}
-        className={`group relative flex h-36 items-center justify-center overflow-hidden rounded-[1.75rem] border border-border bg-surface transition-transform duration-300 ease-out sm:h-40 ${
+        className={`group relative flex h-36 items-center justify-center overflow-hidden rounded-[1.75rem] border border-border bg-surface transform-gpu transition-transform duration-300 ease-out sm:h-40 ${
           wide ? "flex-row gap-5" : "flex-col gap-2.5"
         } ${soon ? "cursor-default opacity-70" : "hover:-translate-y-2"}`}
       >
@@ -81,7 +81,7 @@ function Card({ s, i, wide }: { s: Social; i: number; wide?: boolean }) {
             <img
               src={asset(s.icon3d)}
               alt={s.label}
-              className="absolute inset-0 h-full w-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:rotate-3"
+              className="absolute inset-0 h-full w-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.45)] transform-gpu transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:rotate-3"
               onError={() => setBroken(true)}
             />
           ) : (

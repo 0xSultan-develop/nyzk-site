@@ -29,7 +29,7 @@ function Portrait({ c, watermark, layoutId }: { c: Character; watermark?: string
   return (
     <motion.div layoutId={layoutId} transition={SPRING} className="absolute inset-0">
       <div
-        className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+        className="absolute inset-0 transform-gpu transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         style={{ maskImage: FEATHER, WebkitMaskImage: FEATHER }}
       >
         <div

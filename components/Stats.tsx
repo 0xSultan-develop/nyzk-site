@@ -69,7 +69,7 @@ function FollowerTile({
           <img
             src={asset(icon)}
             alt={label}
-            className={`h-full w-full object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.5)] transition-transform duration-300 group-hover:-translate-y-1 group-hover:rotate-3 ${iconClass ?? ""}`}
+            className={`h-full w-full object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.5)] transform-gpu transition-transform duration-300 group-hover:-translate-y-1 group-hover:rotate-3 ${iconClass ?? ""}`}
             onError={() => setBroken(true)}
           />
         ) : (
@@ -226,7 +226,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
               href={url}
               target="_blank"
               rel="noreferrer"
-              className="block transition-transform hover:-translate-y-1"
+              className="block transform-gpu transition-transform hover:-translate-y-1"
             >
               {tile}
             </a>
