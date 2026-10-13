@@ -3,7 +3,7 @@
  * Anything left empty / marked `soon` renders a "Soon" state on the site.
  */
 
-export const KICK_SLUG = process.env.KICK_CHANNEL_SLUG ?? "nyzzk";
+export const KICK_SLUG = process.env.KICK_CHANNEL_SLUG || "nyzzk";
 
 export const site = {
   brand: "NyZk",
@@ -22,8 +22,8 @@ export type Social = {
   icon3d?: string;
 };
 
-const tiktok = process.env.NEXT_PUBLIC_TIKTOK_USERNAME ?? "..rh32";
-const x = process.env.NEXT_PUBLIC_X_USERNAME ?? "nyzk_6";
+const tiktok = process.env.NEXT_PUBLIC_TIKTOK_USERNAME || "..rh32";
+const x = process.env.NEXT_PUBLIC_X_USERNAME || "nyzk_6";
 
 export const socials: Social[] = [
   {
