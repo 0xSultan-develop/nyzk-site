@@ -206,13 +206,18 @@ export type KickClip = {
 export async function getKickClips(slug: string): Promise<KickClip[]> {
   try {
     const res = await fetch(
-      `${V2_BASE}/channels/${encodeURIComponent(slug)}/clips?sort=view&time=all`,
+      `${V2_BASE}/channels/${encodeURIComponent(slug)}/clips?sort=date&time=all`,
       { headers: { Accept: "application/json", "User-Agent": UA }, next: { revalidate: 300 }, signal: AbortSignal.timeout(8000) },
     );
     if (!res.ok) return [];
     const json = (await res.json()) as { clips?: Record<string, unknown>[] };
     const list = Array.isArray(json.clips) ? json.clips : [];
-    return list.slice(0, 12).map((clip) => {
+    return list
+      .slice()
+      // Newest clip first.
+      .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
+      .slice(0, 12)
+      .map((clip) => {
       const id = String(clip.id ?? "");
       return {
         id,

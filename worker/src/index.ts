@@ -151,10 +151,15 @@ async function getMessages(chatroomId: number) {
 async function getClips(slug: string) {
   try {
     const j = (await kickFetch(
-      `/channels/${encodeURIComponent(slug)}/clips?sort=view&time=all`,
+      `/channels/${encodeURIComponent(slug)}/clips?sort=date&time=all`,
     )) as { clips?: Record<string, unknown>[] };
     const list = Array.isArray(j.clips) ? j.clips : [];
-    return list.slice(0, 12).map((clip) => {
+    return list
+      .slice()
+      // Newest clip first (sort=date already does this; explicit for safety).
+      .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
+      .slice(0, 12)
+      .map((clip) => {
       const id = String(clip.id ?? "");
       return {
         id,
