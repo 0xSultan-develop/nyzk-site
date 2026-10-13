@@ -229,7 +229,7 @@ async function getRegulars(slug: string) {
       .map((r) => ({ name: str(r.name), minutes: num(r.watchtime) }))
       .filter((r): r is { name: string; minutes: number } => r.name != null && r.minutes != null && r.minutes > 0)
       .sort((a, b) => b.minutes - a.minutes)
-      .slice(0, 10)
+      .slice(0, 20)
       .map((r, i) => ({
         rank: i + 1,
         name: r.name,

@@ -105,7 +105,7 @@ function fromBotrix(rows: BotrixRow[]): Leader[] {
     .map((r) => ({ name: (r.name ?? "").trim(), minutes: Number(r.watchtime) }))
     .filter((r) => r.name && Number.isFinite(r.minutes) && r.minutes > 0)
     .sort((a, b) => b.minutes - a.minutes)
-    .slice(0, 10)
+    .slice(0, 20)
     .map((r, i) => ({
       rank: i + 1,
       name: r.name,
@@ -125,7 +125,7 @@ function fromHours(rows: WatchRow[]): Leader[] {
     })
     .filter((r): r is { slug: string; name: string; hours: number } => r !== null)
     .sort((a, b) => b.hours - a.hours)
-    .slice(0, 10)
+    .slice(0, 20)
     .map((r, i) => ({
       rank: i + 1,
       name: r.name,

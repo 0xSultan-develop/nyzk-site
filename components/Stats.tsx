@@ -94,13 +94,24 @@ function Board({
   hint,
   rows,
   delay = 0,
+  searchable = false,
+  searchLimit = 10,
 }: {
   title: string;
   arabic: string;
   hint?: string;
   rows: Leader[];
   delay?: number;
+  searchable?: boolean;
+  searchLimit?: number;
 }) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  // With a search term, look across the whole list; otherwise show the top N.
+  const shown = searchable && q
+    ? rows.filter((r) => r.name.toLowerCase().includes(q))
+    : rows.slice(0, searchable ? searchLimit : rows.length);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -115,14 +126,52 @@ function Board({
         </h3>
       </div>
 
+      {searchable && rows.length > 0 && (
+        <div className="relative mb-3">
+          <svg
+            viewBox="0 0 24 24"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            dir="rtl"
+            placeholder="ابحث باسم المستخدم…"
+            className="w-full rounded-xl border border-border bg-surface-2 py-2 pr-4 pl-9 text-sm text-foreground outline-none transition-colors placeholder:text-muted focus:border-purple/60"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              aria-label="مسح"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted transition-colors hover:text-foreground"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
       {rows.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10">
           <SoonPill />
           <p className="text-xs text-muted" dir="rtl">تظهر البيانات هنا قريبًا.</p>
         </div>
+      ) : shown.length === 0 ? (
+        <p className="py-8 text-center text-xs text-muted" dir="rtl">
+          «{query.trim()}» مو ضمن أعلى {rows.length} في الحضور
+        </p>
       ) : (
         <ol className="scroll-thin flex flex-col gap-1">
-          {rows.map((r) => (
+          {shown.map((r) => (
             <li
               key={r.rank}
               className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-surface-2"
@@ -319,6 +368,7 @@ export function Stats({ stats }: { stats: SiteStats }) {
           hint="Ranked by watch time · signed in on Kick"
           rows={s.streamRegulars}
           delay={0.1}
+          searchable
         />
       </div>
     </section>
